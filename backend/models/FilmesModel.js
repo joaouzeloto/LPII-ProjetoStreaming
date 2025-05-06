@@ -42,6 +42,21 @@ class Filmes {
     static async delete(id) {
         return await FilmesModel.findByIdAndDelete(id); // Exclui o filme pelo ID
     }
+
+    // Método para buscar filme por nome
+    static async searchByName(nome) {
+        return await FilmesModel.find({ nome: { $regex: nome, $options: 'i' } }); // Busca filme pelo nome (case insensitive)
+    }
+
+    // Método para buscar filme por gênero
+    static async searchByGenre(genero) {
+        return await FilmesModel.find({ genero: { $regex: genero, $options: 'i' } }); // Busca filme pelo gênero (case insensitive)
+    }
+
+    // Método para buscar filme por ano de lançamento
+    static async searchByReleaseYear(anoLancamento) {
+        return await FilmesModel.find({ anoLancamento: { $regex: anoLancamento, $options: 'i' } }); // Busca filme pelo ano de lançamento (case insensitive)
+    }
 }
 
 export default Filmes;

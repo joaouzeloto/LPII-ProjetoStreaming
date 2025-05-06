@@ -1,28 +1,7 @@
 import __dirname from '../utils/pathUtils.js';
-import path from 'path';
 import Series from '../models/Series.js';
 
 class SeriesController {
-
-    //Implementação dos Renders das Páginas WEB
-    static async renderCreateSeries(req, res) {
-        try {
-            res.sendFile(path.join(__dirname, 'views', 'cadastrar-series.html'));
-        } catch (error) {
-            console.error('Erro ao carregar a página:', error);
-            res.status(500).send('Erro interno');
-        }
-    }
-
-    static async renderVisualizeSeries(req, res) {
-        try {
-            const series = await Series.findAll();
-            res.render('visualizar-series', { series });
-        } catch (error) {
-            console.error('Erro ao carregar a página:', error);
-            res.status(500).send('Erro interno');
-        }
-    }
 
     static async createSeries(req, res) {
         try {
@@ -96,26 +75,34 @@ class SeriesController {
         }
     }
 
-    static async renderUpdateSeries(req, res) {
+    static async visualizeSeriesById(req, res) {
         try {
             const { id } = req.params;
             const series = await Series.findById(id);
-            res.render('atualizar-series', { series });
+            if (!series) {
+                return res.status(404).json({ message: 'Série não encontrada' });
+            }
+            res.status(200).json(series);
         } catch (error) {
-            console.error('Erro ao carregar a página:', error);
+            console.error('Erro ao visualizar a série:', error);
             res.status(500).send('Erro interno');
         }
     }
 
-    static async renderDeleteSeries(req, res) {
+    static async searchSeriesByName(req, res) {
         try {
-            const { id } = req.params;
-            const series = await Series.findById(id);
-            res.render('excluir-series', { series });
+            const { nome } = req.params;
+            const series = await Series.searchByName(nome);
+            if (!series) {
+                return res.status(404).json({ message: 'Série não encontrada' });
+            }
+            res.status(200).json(series);
         } catch (error) {
-            console.error('Erro ao carregar a página:', error);
+            console.error('Erro ao buscar a série:', error);
             res.status(500).send('Erro interno');
         }
     }
-
+    
 }
+
+export default SeriesController;
