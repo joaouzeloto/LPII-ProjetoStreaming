@@ -46,6 +46,12 @@ class Series {
     static async delete(id) {
         return await SeriesModel.findByIdAndDelete(id); // Exclui a série pelo ID
     }
+
+    // Método para buscar série por nome
+    static async searchByName(nome) {
+        return await SeriesModel.find({ nome: { $regex: nome, $options: 'i' } }); // Busca série pelo nome (case insensitive)
+    }
+
 }
 
 export default Series;
