@@ -1,5 +1,5 @@
 import __dirname from '../utils/pathUtils.js';
-import Series from '../models/Series.js';
+import Series from '../models/SeriesModel.js';
 
 class SeriesController {
 

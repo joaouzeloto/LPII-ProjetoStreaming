@@ -11,3 +11,5 @@ router.use("/filmes", filmesRouter);
 router.use("/conta", contaRouter);
 router.use("/usuario", usuarioRouter);
 
+export default router;
+
