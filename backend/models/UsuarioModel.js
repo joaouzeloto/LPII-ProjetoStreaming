@@ -8,36 +8,42 @@ class Usuario {
         this.caminho = caminho; // Adicionando o caminho da imagem
     }
 
-    // Método para salvar um novo usuário
+    // Salvar novo usuário
     async save() {
         const novoUsuario = new UsuarioModel({
             nome: this.nome,
             dtNascimento: this.dtNascimento,
             apelido: this.apelido,
-            caminho: this.caminho // Adicionando o campo caminho para salvar a imagem
+            caminho: this.caminho,
+            email: this.email,
+            senha: this.senha
         });
         return await novoUsuario.save();
     }
 
-    // Método para encontrar todos os usuários
+    // Encontrar todos
     static async findAll() {
         return await UsuarioModel.find();
     }
 
-    // Método para encontrar usuário por ID
+    // Encontrar por ID
     static async findById(id) {
         return await UsuarioModel.findById(id);
     }
 
-    // Método para atualizar usuário
-    static async update(id, usuario) {
-        return await UsuarioModel.findByIdAndUpdate(id, usuario, { new: true });
-    }  // Adicionando opção de retornar o usuário atualizado
-
-    static async delete(id) {
-        return await UsuarioModel.findByIdAndDelete(id); // Exclui o usuário pelo ID
+    // Atualizar usuário por ID
+    static async update(id, dados) {
+        return await UsuarioModel.findByIdAndUpdate(
+            id,
+            { $set: dados },
+            { new: true, runValidators: true }
+        );
     }
 
+    // Deletar usuário por ID
+    static async delete(id) {
+        return await UsuarioModel.findByIdAndDelete(id);
+    }
 }
 
 export default Usuario;
