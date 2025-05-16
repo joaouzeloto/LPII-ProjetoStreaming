@@ -9,8 +9,7 @@ const SALT_ROUNDS = 10;
 class UsuarioController {
     static async createUsuario(req, res) {
         try {
-            console.log('Criando usuário:', req.body);
-            console.log('Arquivo enviado:', req.file);
+            
             
             const { nome, email, dtNascimento, apelido, senha } = req.body;
             const caminho = req.file ? req.file.filename : undefined;
@@ -72,8 +71,7 @@ class UsuarioController {
                 return res.status(400).json({ message: 'ID de usuário inválido' });
             }
 
-            console.log('Atualizando usuário:', req.body);
-            console.log('Arquivo enviado:', req.file);
+          
 
             const { nome, dtNascimento, apelido, email, senha } = req.body;
             const updates = {};

@@ -123,9 +123,7 @@ class FilmesController {
     static async searchFilmeByGenre(req, res) {
         try {
             const { genero } = req.params;
-            const filmes = await Filmes.find({ 
-                genero: { $regex: genero, $options: 'i' } 
-            }).sort({ dataCriacao: -1 });
+            const filmes = await Filmes.searchByGenre(genero);
             
             res.status(200).json(filmes);
         } catch (error) {
@@ -137,9 +135,7 @@ class FilmesController {
     static async searchFilmeByReleaseYear(req, res) {
         try {
             const { anoLancamento } = req.params;
-            const filmes = await Filmes.find({ 
-                anoLancamento: parseInt(anoLancamento) 
-            }).sort({ dataCriacao: -1 });
+            const filmes = await Filmes.searchByReleaseYear(anoLancamento);
             
             res.status(200).json(filmes);
         } catch (error) {

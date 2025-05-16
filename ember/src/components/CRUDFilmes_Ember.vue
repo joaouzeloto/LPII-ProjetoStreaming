@@ -99,8 +99,8 @@
         >
           <div class="movie-poster">
             <img 
-              v-if="filme.imagemPath" 
-              :src="getImageUrl(filme.imagemPath)" 
+              v-if="filme.caminho" 
+              :src="'../uploads/'+filme.caminho" 
               :alt="filme.nome"
             />
             <div v-else class="movie-poster-placeholder">
@@ -154,8 +154,8 @@
         <div class="film-header">
           <div class="film-poster">
             <img 
-              v-if="selectedFilme.imagemPath" 
-              :src="getImageUrl(selectedFilme.imagemPath)" 
+              v-if="selectedFilme.caminho" 
+              :src="'../uploads/'+selectedFilme.caminho" 
               :alt="selectedFilme.nome"
             />
             <div v-else class="film-poster-placeholder">

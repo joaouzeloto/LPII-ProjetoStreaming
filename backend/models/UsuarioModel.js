@@ -31,6 +31,10 @@ class Usuario {
         return await UsuarioModel.findById(id);
     }
 
+    static async findByEmail(email) {
+        return await UsuarioModel.find({ email });
+    }
+
     // Atualizar usuário por ID
     static async update(id, dados) {
         return await UsuarioModel.findByIdAndUpdate(
