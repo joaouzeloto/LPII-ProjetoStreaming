@@ -2,7 +2,7 @@
   <div class="register-wrapper">
     <div class="register-bg-overlay"></div>
     <div class="logo-container">
-      <h1 class="site-logo">Net-Flix</h1>
+      <h1 class="site-logo">ㅤㅤㅤㅤ</h1>
     </div>
     
     <div class="register-container">
@@ -38,15 +38,38 @@
             </div>
 
             <div class="form-group">
-              <label for="cpf">CPF</label>
+              <label for="birthDate">Data de Nascimento</label>
               <input 
-                type="text" 
-                id="cpf" 
-                v-model="form.cpf" 
-                placeholder="000.000.000-00"
-                v-mask="'###.###.###-##'"
+                type="date" 
+                id="birthDate" 
+                v-model="form.birthDate" 
                 required
               />
+            </div>
+
+            <div class="form-group">
+              <label for="nickname">Apelido (opcional)</label>
+              <input 
+                type="text" 
+                id="nickname" 
+                v-model="form.nickname" 
+                placeholder="Como você gostaria de ser chamado"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="profileImage">Foto de Perfil (opcional)</label>
+              <input 
+                type="file" 
+                id="profileImage" 
+                @change="handleImageUpload" 
+                accept="image/jpeg,image/png,image/gif"
+                class="file-input"
+              />
+              <div class="file-preview" v-if="imagePreview">
+                <img :src="imagePreview" alt="Preview" class="preview-image" />
+                <button type="button" class="remove-image" @click="removeImage">×</button>
+              </div>
             </div>
           </div>
           
@@ -128,8 +151,8 @@
                   id="city" 
                   v-model="form.city" 
                   placeholder="Sua cidade"
-                  readonly
                   :class="{ 'auto-filled': autoFilled }"
+                  required
                 />
               </div>
               
@@ -140,8 +163,8 @@
                   id="state" 
                   v-model="form.state" 
                   placeholder="UF"
-                  readonly
                   :class="{ 'auto-filled': autoFilled }"
+                  required
                 />
               </div>
             </div>
@@ -159,7 +182,8 @@
                     :type="showPassword ? 'text' : 'password'" 
                     id="password" 
                     v-model="form.password" 
-                    placeholder="Digite sua senha"
+                    placeholder="Digite sua senha (mínimo 6 caracteres)"
+                    minlength="6"
                     required
                   />
                   <button 
@@ -173,6 +197,7 @@
                     </svg>
                   </button>
                 </div>
+                <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
               </div>
               
               <div class="form-group">
@@ -196,6 +221,7 @@
                     </svg>
                   </button>
                 </div>
+                <p v-if="passwordMismatch" class="error-message">As senhas não coincidem</p>
               </div>
             </div>
           </div>
@@ -209,10 +235,25 @@
             </label>
           </div>
           
-          <button type="submit" class="register-button" :disabled="!form.acceptTerms">Cadastrar</button>
+          <button 
+            type="submit" 
+            class="register-button" 
+            :disabled="!form.acceptTerms || isSubmitting"
+          >
+            {{ isSubmitting ? 'Cadastrando...' : 'Cadastrar' }}
+          </button>
+          
+          <div v-if="registerSuccess" class="success-message">
+            <p>Cadastro realizado com sucesso!</p>
+            <p>Você será redirecionado para a página de login em {{ redirectCount }} segundos...</p>
+          </div>
+          
+          <div v-if="registerError" class="error-panel">
+            <p>{{ registerError }}</p>
+          </div>
           
           <p class="login-text">
-            Já tem uma conta? <a href="#">Faça Login</a>
+            Já tem uma conta? <a href="#" @click.prevent="goToLogin">Faça Login</a>
           </p>
         </form>
       </div>
@@ -221,13 +262,18 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 // Estado reativo
 const form = ref({
   fullName: '',
   email: '',
-  cpf: '',
+  birthDate: '',
+  nickname: '',
+  profileImage: null,
   cep: '',
   state: '',
   city: '',
@@ -240,11 +286,36 @@ const form = ref({
   acceptTerms: false
 });
 
+// Estado da UI
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
 const loading = ref(false);
 const cepError = ref('');
 const autoFilled = ref(false);
+const passwordError = ref('');
+const passwordMismatch = ref(false);
+const isSubmitting = ref(false);
+const registerSuccess = ref(false);
+const registerError = ref('');
+const redirectCount = ref(5);
+const imagePreview = ref('');
+
+// Validações
+watch(() => form.value.password, (newValue) => {
+  if (newValue.length > 0 && newValue.length < 6) {
+    passwordError.value = 'A senha deve ter pelo menos 6 caracteres';
+  } else {
+    passwordError.value = '';
+  }
+});
+
+watch([() => form.value.password, () => form.value.confirmPassword], ([newPassword, newConfirmPassword]) => {
+  if (newConfirmPassword && newPassword !== newConfirmPassword) {
+    passwordMismatch.value = true;
+  } else {
+    passwordMismatch.value = false;
+  }
+});
 
 // Métodos
 const fetchAddressData = async () => {
@@ -290,15 +361,132 @@ const fetchAddressData = async () => {
   }
 };
 
-const handleRegister = () => {
-  // Aqui você adicionaria a lógica de cadastro
-  if (form.value.password !== form.value.confirmPassword) {
-    alert('As senhas não coincidem');
+const handleImageUpload = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    form.value.profileImage = file;
+    
+    // Cria uma preview da imagem
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.value = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+};
+
+const removeImage = () => {
+  form.value.profileImage = null;
+  imagePreview.value = '';
+  // Resetar o input de arquivo
+  const fileInput = document.getElementById('profileImage');
+  if (fileInput) {
+    fileInput.value = '';
+  }
+};
+
+// Formatar data para o formato esperado pelo backend
+const formatBirthdate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+};
+
+const handleRegister = async () => {
+  // Resetar erros anteriores
+  registerError.value = '';
+  
+  // Validações básicas (mantidas do código existente)
+  if (!form.value.fullName || !form.value.email || !form.value.birthDate || !form.value.password) {
+    registerError.value = 'Por favor, preencha todos os campos obrigatórios';
     return;
   }
   
-  console.log('Dados do formulário:', form.value);
-  // Envio para API, etc...
+  if (form.value.password.length < 6) {
+    registerError.value = 'A senha deve ter pelo menos 6 caracteres';
+    return;
+  }
+  
+  if (form.value.password !== form.value.confirmPassword) {
+    registerError.value = 'As senhas não coincidem';
+    return;
+  }
+  
+  // Validar dados de endereço
+  if (!form.value.cep || !form.value.street || !form.value.number || 
+      !form.value.neighborhood || !form.value.city || !form.value.state) {
+    registerError.value = 'Por favor, preencha todos os campos de endereço';
+    return;
+  }
+  
+  try {
+    isSubmitting.value = true;
+    
+    // Preparar os dados para o formulário
+    const formData = new FormData();
+    formData.append('nome', form.value.fullName);
+    formData.append('email', form.value.email);
+    formData.append('dtNascimento', formatBirthdate(form.value.birthDate));
+    formData.append('apelido', form.value.nickname || ''); // Opcional
+    formData.append('senha', form.value.password);
+    
+    // Por padrão, novos usuários são "user" - você pode adicionar uma opção 
+    // no formulário para definir como "admin" se necessário
+    formData.append('role', 'user');
+    
+    // Estrutura de endereço
+    const endereco = {
+      cep: form.value.cep,
+      rua: form.value.street,
+      numero: form.value.number,
+      bairro: form.value.neighborhood,
+      complemento: form.value.complement || '',
+      cidade: form.value.city,
+      estado: form.value.state
+    };
+    
+    // Adiciona como JSON string
+    formData.append('endereco', JSON.stringify(endereco));
+    
+    // Se tiver um arquivo de imagem, adicione-o
+    if (form.value.profileImage) {
+      formData.append('imagem', form.value.profileImage);
+    }
+    
+    // Enviar para a API
+    const response = await fetch('http://localhost:3000/usuario', {
+      method: 'POST',
+      body: formData,
+      // Não definir Content-Type, o navegador define automaticamente para FormData
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.message || 'Erro ao criar usuário');
+    }
+    
+    // Cadastro bem-sucedido
+    registerSuccess.value = true;
+    
+    // Iniciar contagem regressiva para redirecionamento
+    const countdownInterval = setInterval(() => {
+      redirectCount.value--;
+      if (redirectCount.value <= 0) {
+        clearInterval(countdownInterval);
+        goToLogin();
+      }
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Erro no cadastro:', error);
+    registerError.value = error.message || 'Ocorreu um erro durante o cadastro. Tente novamente.';
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+const goToLogin = () => {
+  router.push('/');
 };
 </script>
 
@@ -417,6 +605,16 @@ const handleRegister = () => {
   transition: background-color 0.2s;
 }
 
+.form-group input[type="date"] {
+  padding: 12px 16px; /* Menor padding para datas */
+}
+
+.form-group input.file-input {
+  padding: 12px;
+  height: auto;
+  background-color: #454545;
+}
+
 .form-group input:focus {
   background-color: #454545;
   outline: none;
@@ -425,6 +623,38 @@ const handleRegister = () => {
 .form-group input.auto-filled {
   background-color: #264027;
   border-left: 3px solid #2eca6a;
+}
+
+.file-preview {
+  margin-top: 10px;
+  position: relative;
+  display: inline-block;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preview-image {
+  max-width: 100px;
+  max-height: 100px;
+  display: block;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
 }
 
 .cep-input {
@@ -453,6 +683,23 @@ const handleRegister = () => {
   color: #e50914;
   font-size: 12px;
   margin-top: 6px;
+}
+
+.error-panel {
+  background-color: rgba(229, 9, 20, 0.1);
+  border-left: 3px solid #e50914;
+  padding: 10px 15px;
+  margin: 20px 0;
+  color: #e5e5e5;
+}
+
+.success-message {
+  background-color: rgba(46, 202, 106, 0.1);
+  border-left: 3px solid #2eca6a;
+  padding: 15px;
+  margin: 20px 0;
+  color: #e5e5e5;
+  text-align: center;
 }
 
 .password-input {

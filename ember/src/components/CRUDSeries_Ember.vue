@@ -5,14 +5,14 @@
     <!-- Header -->
     <header class="netflix-header">
       <div class="logo-container">
-        <h1 class="site-logo">Net-Flix Users</h1>
+        <h1 class="site-logo">NET-FLIX</h1>
       </div>
       <div class="search-container">
         <div class="search-box">
           <input 
             type="text" 
             v-model="searchQuery" 
-            placeholder="Buscar usuários..."
+            placeholder="Buscar séries..."
             @input="handleSearch" 
           />
           <button class="search-button">
@@ -32,23 +32,23 @@
           </button>
           <button 
             class="filter-button" 
-            :class="{ active: activeFilter === 'name' }"
-            @click="setFilter('name')"
+            :class="{ active: activeFilter === 'genre' }"
+            @click="setFilter('genre')"
           >
-            Nome
+            Gênero
           </button>
           <button 
             class="filter-button" 
-            :class="{ active: activeFilter === 'email' }"
-            @click="setFilter('email')"
+            :class="{ active: activeFilter === 'year' }"
+            @click="setFilter('year')"
           >
-            Email
+            Ano
           </button>
         </div>
       </div>
       <div class="actions-container">
-        <button class="add-movie-button" @click="showAddUsuario = true">
-          Adicionar Usuário
+        <button class="add-series-button" @click="showAddSeries = true">
+          Adicionar Série
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -62,7 +62,7 @@
       <!-- Loading State -->
       <div v-if="loading" class="loading-container">
         <div class="loading-spinner"></div>
-        <p>Carregando usuários...</p>
+        <p>Carregando séries...</p>
       </div>
       
       <!-- Error State -->
@@ -74,86 +74,78 @@
         </svg>
         <h2>Ocorreu um erro</h2>
         <p>{{ error }}</p>
-        <button class="retry-button" @click="loadUsuarios">Tentar novamente</button>
+        <button class="retry-button" @click="loadSeries">Tentar novamente</button>
       </div>
       
       <!-- No Results State -->
-      <div v-else-if="usuarios.length === 0" class="no-results-container">
+      <div v-else-if="series.length === 0" class="no-results-container">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="8" y1="12" x2="16" y2="12"></line>
         </svg>
-        <h2>Nenhum usuário encontrado</h2>
+        <h2>Nenhuma série encontrada</h2>
         <p v-if="searchQuery">Nenhum resultado para "{{ searchQuery }}"</p>
-        <p v-else>Adicione usuários para começar</p>
+        <p v-else>Adicione séries para começar</p>
+        <button class="add-first-button" @click="showAddSeries = true">
+          Adicionar Série
+        </button>
       </div>
       
-      <!-- Usuarios Table -->
-      <div v-else class="users-table-container">
-        <table class="users-table">
-          <thead>
-            <tr>
-              <th>Foto</th>
-              <th>Nome Completo</th>
-              <th>Email</th>
-              <th>Apelido</th>
-              <th>Data de Nascimento</th>
-              <th>Idade</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="usuario in usuarios" :key="usuario._id">
-              <td class="user-image">
-                <div class="avatar-container">
-                  <img 
-                    v-if="usuario.caminho" 
-                    :src="getImageUrl(usuario.caminho)" 
-                    :alt="usuario.nome"
-                  />
-                  <div v-else class="avatar-placeholder">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                  </div>
-                </div>
-              </td>
-              <td class="user-name">{{ usuario.nome }}</td>
-              <td class="user-email">{{ usuario.email }}</td>
-              <td class="user-nickname">{{ usuario.apelido || '-' }}</td>
-              <td class="user-birthdate">{{ formatDate(usuario.dtNascimento) }}</td>
-              <td class="user-age">{{ calculateAge(usuario.dtNascimento) }} anos</td>
-              <td class="user-actions">
-                <div class="actions-wrapper">
-                  <button class="action-button view" @click="selectUsuario(usuario)" title="Ver detalhes">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
-                  <button class="action-button edit" @click="editUsuario(usuario)" title="Editar">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                    </svg>
-                  </button>
-                  <button class="action-button delete" @click="confirmDelete(usuario)" title="Excluir">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Series Grid -->
+      <div v-else class="series-grid">
+        <div 
+          v-for="serie in series" 
+          :key="serie._id" 
+          class="series-card"
+          @click="selectSerie(serie)"
+        >
+          <div class="series-poster">
+            <img 
+              v-if="serie.caminho" 
+              :src="'../uploads/'+serie.caminho" 
+              :alt="serie.nome"
+            />
+            <div v-else class="series-poster-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                <line x1="7" y1="2" x2="7" y2="22"></line>
+                <line x1="17" y1="2" x2="17" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="2" y1="7" x2="7" y2="7"></line>
+                <line x1="2" y1="17" x2="7" y2="17"></line>
+                <line x1="17" y1="17" x2="22" y2="17"></line>
+                <line x1="17" y1="7" x2="22" y2="7"></line>
+              </svg>
+            </div>
+            <div class="series-actions">
+              <button class="action-button edit" @click.stop="editSerie(serie)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                </svg>
+              </button>
+              <button class="action-button delete" @click.stop="confirmDelete(serie)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div class="series-info">
+            <h3 class="series-title">{{ serie.nome }}</h3>
+            <div class="series-meta">
+              <span class="series-year">{{ serie.anoLancamento }}</span>
+              <span class="series-duration">{{ serie.temporadas }} Temp</span>
+            </div>
+            <span class="series-genre">{{ serie.genero }}</span>
+          </div>
+        </div>
       </div>
     </main>
     
-    <!-- Modal for usuario details -->
-    <div v-if="selectedUsuario" class="modal-overlay" @click="closeModal">
-      <div class="modal-content film-details" @click.stop>
+    <!-- Modal for series details -->
+    <div v-if="selectedSerie" class="modal-overlay" @click="closeModal">
+      <div class="modal-content series-details" @click.stop>
         <button class="modal-close" @click="closeModal">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -161,41 +153,52 @@
           </svg>
         </button>
         
-        <div class="film-header">
-          <div class="film-poster">
+        <div class="series-header">
+          <div class="series-poster">
             <img 
-              v-if="selectedUsuario.caminho" 
-              :src="getImageUrl(selectedUsuario.caminho)" 
-              :alt="selectedUsuario.nome"
+              v-if="selectedSerie.caminho" 
+              :src="'../uploads/'+selectedSerie.caminho" 
+              :alt="selectedSerie.nome"
             />
-            <div v-else class="film-poster-placeholder">
-              <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
+            <div v-else class="series-poster-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                <line x1="7" y1="2" x2="7" y2="22"></line>
+                <line x1="17" y1="2" x2="17" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="2" y1="7" x2="7" y2="7"></line>
+                <line x1="2" y1="17" x2="7" y2="17"></line>
+                <line x1="17" y1="17" x2="22" y2="17"></line>
+                <line x1="17" y1="7" x2="22" y2="7"></line>
               </svg>
             </div>
           </div>
-          <div class="film-main-info">
-            <h2 class="film-title">{{ selectedUsuario.nome }}</h2>
-            <div class="film-meta">
-              <span class="film-year">{{ calculateAge(selectedUsuario.dtNascimento) }} anos</span>
-              <span class="film-genre" v-if="selectedUsuario.apelido">{{ selectedUsuario.apelido }}</span>
+          <div class="series-main-info">
+            <h2 class="series-title">{{ selectedSerie.nome }}</h2>
+            <div class="series-meta">
+              <span class="series-year">{{ selectedSerie.anoLancamento }}</span>
+              <span class="series-duration">{{ formatDuration(selectedSerie.duracao) }}</span>
+              <span class="series-genre">{{ selectedSerie.genero }}</span>
             </div>
-            <p class="user-email">{{ selectedUsuario.email }}</p>
-            <p class="user-birthdate">Data de Nascimento: {{ formatDate(selectedUsuario.dtNascimento) }}</p>
-            <p class="user-id">ID: {{ selectedUsuario._id }}</p>
+            <div class="series-seasons-info">
+              <span class="seasons-badge">{{ selectedSerie.temporadas }} Temporadas</span>
+              <span class="episodes-badge">{{ selectedSerie.episodios }} Episódios</span>
+            </div>
           </div>
         </div>
         
-        <div class="film-body">
-          <div class="film-actions">
-            <button class="action-btn edit" @click="editUsuario(selectedUsuario)">
+        <div class="series-body">
+          <h3 class="section-title">Sinopse</h3>
+          <p class="series-synopsis">{{ selectedSerie.sinopse }}</p>
+          
+          <div class="series-actions">
+            <button class="action-btn edit" @click="editSerie(selectedSerie)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
               </svg>
               Editar
             </button>
-            <button class="action-btn delete" @click="confirmDelete(selectedUsuario)">
+            <button class="action-btn delete" @click="confirmDelete(selectedSerie)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -207,9 +210,9 @@
       </div>
     </div>
     
-    <!-- Modal for add/edit usuario -->
-    <div v-if="showAddUsuario || editingUsuario" class="modal-overlay" @click="closeModal">
-      <div class="modal-content film-form" @click.stop>
+    <!-- Modal for add/edit series -->
+    <div v-if="showAddSeries || editingSerie" class="modal-overlay" @click="closeModal">
+      <div class="modal-content series-form" @click.stop>
         <button class="modal-close" @click="closeModal">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -217,78 +220,107 @@
           </svg>
         </button>
         
-        <h2 class="form-title">{{ editingUsuario ? 'Editar Usuário' : 'Adicionar Usuário' }}</h2>
+        <h2 class="form-title">{{ editingSerie ? 'Editar Série' : 'Adicionar Série' }}</h2>
         
-        <form class="movie-form" @submit.prevent="saveUsuario">
+        <form class="series-form" @submit.prevent="saveSerie">
           <div class="form-group">
-            <label for="nome">Nome Completo</label>
+            <label for="nome">Nome da Série</label>
             <input 
               type="text" 
               id="nome" 
-              v-model="formUsuario.nome" 
-              placeholder="Digite o nome completo"
+              v-model="formSerie.nome" 
+              placeholder="Digite o nome da série"
               required
             />
           </div>
           
           <div class="form-group">
-            <label for="email">Email</label>
-            <input 
-              type="email" 
-              id="email" 
-              v-model="formUsuario.email" 
-              placeholder="Digite o email"
+            <label for="genero">Gênero</label>
+            <select 
+              id="genero" 
+              v-model="formSerie.genero" 
               required
-            />
+            >
+              <option value="" disabled>Selecione um gênero</option>
+              <option value="Ação">Ação</option>
+              <option value="Aventura">Aventura</option>
+              <option value="Comédia">Comédia</option>
+              <option value="Drama">Drama</option>
+              <option value="Ficção Científica">Ficção Científica</option>
+              <option value="Romance">Romance</option>
+              <option value="Terror">Terror</option>
+              <option value="Documentário">Documentário</option>
+              <option value="Animação">Animação</option>
+              <option value="Suspense">Suspense</option>
+            </select>
           </div>
           
           <div class="form-row">
             <div class="form-group">
-              <label for="dtNascimento">Data de Nascimento</label>
+              <label for="anoLancamento">Ano de Lançamento</label>
               <input 
-                type="date" 
-                id="dtNascimento" 
-                v-model="formUsuario.dtNascimento" 
+                type="number" 
+                id="anoLancamento" 
+                v-model="formSerie.anoLancamento" 
+                placeholder="Ano"
+                min="1900"
+                :max="new Date().getFullYear()"
                 required
               />
             </div>
             
             <div class="form-group">
-              <label for="apelido">Apelido (opcional)</label>
+              <label for="duracao">Duração (minutos por episódio)</label>
               <input 
-                type="text" 
-                id="apelido" 
-                v-model="formUsuario.apelido" 
-                placeholder="Apelido"
+                type="number" 
+                id="duracao" 
+                v-model="formSerie.duracao" 
+                placeholder="Minutos"
+                min="1"
+                required
               />
             </div>
           </div>
           
-          <div class="form-group" v-if="!editingUsuario">
-            <label for="senha">Senha</label>
-            <input 
-              type="password" 
-              id="senha" 
-              v-model="formUsuario.senha" 
-              placeholder="Digite a senha"
-              minlength="6"
-              required
-            />
-          </div>
-          
-          <div class="form-group" v-if="editingUsuario">
-            <label for="senha">Nova Senha (opcional)</label>
-            <input 
-              type="password" 
-              id="senha" 
-              v-model="formUsuario.senha" 
-              placeholder="Deixe em branco para manter a senha atual"
-              minlength="6"
-            />
+          <div class="form-row">
+            <div class="form-group">
+              <label for="temporadas">Temporadas</label>
+              <input 
+                type="number" 
+                id="temporadas" 
+                v-model="formSerie.temporadas" 
+                placeholder="Número de temporadas"
+                min="1"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="episodios">Episódios</label>
+              <input 
+                type="number" 
+                id="episodios" 
+                v-model="formSerie.episodios" 
+                placeholder="Total de episódios"
+                min="1"
+                required
+              />
+            </div>
           </div>
           
           <div class="form-group">
-            <label for="imagem">Foto de Perfil</label>
+            <label for="sinopse">Sinopse</label>
+            <textarea 
+              id="sinopse" 
+              v-model="formSerie.sinopse" 
+              placeholder="Digite a sinopse da série"
+              rows="5"
+              required
+            ></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="imagem">Imagem da Série</label>
             <div class="file-input-container">
               <input 
                 type="file" 
@@ -314,7 +346,7 @@
           <div class="form-actions">
             <button type="button" class="cancel-button" @click="closeModal">Cancelar</button>
             <button type="submit" class="save-button">
-              {{ editingUsuario ? 'Atualizar' : 'Salvar' }}
+              {{ editingSerie ? 'Atualizar' : 'Salvar' }}
             </button>
           </div>
         </form>
@@ -326,12 +358,12 @@
       <div class="modal-content confirm-dialog" @click.stop>
         <h3 class="confirm-title">Confirmar exclusão</h3>
         <p class="confirm-message">
-          Tem certeza que deseja excluir o usuário <strong>{{ deleteUsuario?.nome }}</strong>?
+          Tem certeza que deseja excluir a série <strong>{{ deleteSerie?.nome }}</strong>?
           <br>Esta ação não pode ser desfeita.
         </p>
         <div class="confirm-actions">
           <button class="cancel-button" @click="cancelDelete">Cancelar</button>
-          <button class="delete-button" @click="deleteUsuarioConfirmed">
+          <button class="delete-button" @click="deleteSerieConfirmed">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -370,28 +402,30 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 
-// API base URL
-const API_URL = 'http://localhost:3000/usuario';
+// API base URL - Mantendo exatamente igual ao original
+const API_URL = 'http://localhost:3000';
 
 // Estado reativo
-const usuarios = ref([]);
+const series = ref([]);
 const loading = ref(true);
 const error = ref(null);
 const searchQuery = ref('');
 const activeFilter = ref('all');
-const selectedUsuario = ref(null);
-const showAddUsuario = ref(false);
-const editingUsuario = ref(null);
-const formUsuario = ref({
+const selectedSerie = ref(null);
+const showAddSeries = ref(false);
+const editingSerie = ref(null);
+const formSerie = ref({
   nome: '',
-  email: '',
-  dtNascimento: '',
-  apelido: '',
-  senha: '',
-  caminho: null
+  genero: '',
+  sinopse: '',
+  anoLancamento: new Date().getFullYear(),
+  duracao: '',
+  temporadas: 1,
+  episodios: 1,
+  imagemPath: null
 });
 const showDeleteConfirm = ref(false);
-const deleteUsuario = ref(null);
+const deleteSerie = ref(null);
 const imagePreview = ref(null);
 const selectedFileName = ref('');
 const selectedFile = ref(null);
@@ -402,55 +436,43 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
-// Função auxiliar para criar headers com autenticação
-const getAuthHeaders = (contentType = 'application/json') => {
-  const token = getAuthToken();
-  const headers = {
-    'Authorization': `Bearer ${token}`
-  };
-  
-  if (contentType) {
-    headers['Content-Type'] = contentType;
-  }
-  
-  return headers;
-};
-
 // Verificar se o token existe
 const checkAuthentication = () => {
   const token = getAuthToken();
   if (!token) {
-    // Redirecionar para a página de login ou mostrar mensagem
     showToast('Usuário não autenticado. Faça login para continuar.', 'error');
-    // Você pode adicionar um redirecionamento aqui se necessário
-    // window.location.href = '/login';
     return false;
   }
   return true;
 };
 
 // Métodos
-const loadUsuarios = async () => {
+const loadSeries = async () => {
   loading.value = true;
   error.value = null;
   
   try {
-    const response = await fetch(`${API_URL}/`, {
+    // Mantendo a URL exatamente igual ao original
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/series`, {
       method: 'GET',
-      headers: getAuthHeaders()
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
     });
     
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('Não autorizado. Faça login novamente.');
       }
-      throw new Error('Erro ao carregar usuários');
+      throw new Error('Erro ao carregar séries');
     }
     
-    usuarios.value = await response.json();
+    series.value = await response.json();
+    console.log('Séries carregadas:', series.value);
   } catch (err) {
-    console.error('Erro ao carregar usuários:', err);
-    error.value = err.message || 'Não foi possível carregar os usuários. Por favor, tente novamente.';
+    console.error('Erro ao carregar séries:', err);
+    error.value = err.message || 'Não foi possível carregar as séries. Por favor, tente novamente.';
   } finally {
     loading.value = false;
   }
@@ -458,7 +480,7 @@ const loadUsuarios = async () => {
 
 const handleSearch = async () => {
   if (!searchQuery.value.trim()) {
-    await loadUsuarios();
+    await loadSeries();
     return;
   }
   
@@ -466,57 +488,39 @@ const handleSearch = async () => {
   error.value = null;
   
   try {
-    if (activeFilter.value === 'email') {
-      // Busca por email
-      const endpoint = `${API_URL}/email/${searchQuery.value}`;
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Não autorizado. Faça login novamente.');
-        }
-        throw new Error('Usuário não encontrado');
-      }
-      
-      const usuario = await response.json();
-      usuarios.value = [usuario];
-    } else {
-      // Busca por todos ou por nome (filtragem no cliente)
-      const response = await fetch(`${API_URL}/`, {
-        method: 'GET',
-        headers: getAuthHeaders()
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Não autorizado. Faça login novamente.');
-        }
-        throw new Error('Erro na busca');
-      }
-      
-      const allUsuarios = await response.json();
-      
-      if (activeFilter.value === 'name') {
-        // Filtrar por nome no lado do cliente
-        usuarios.value = allUsuarios.filter(usuario => 
-          usuario.nome.toLowerCase().includes(searchQuery.value.toLowerCase())
-        );
-      } else {
-        // Filtrar em todos os campos
-        usuarios.value = allUsuarios.filter(usuario => 
-          usuario.nome.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-          usuario.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-          (usuario.apelido && usuario.apelido.toLowerCase().includes(searchQuery.value.toLowerCase()))
-        );
-      }
+    let endpoint = `${API_URL}/series`;
+    const token = getAuthToken();
+    
+    if (activeFilter.value === 'all') {
+      endpoint = `${API_URL}/series/search/${searchQuery.value}`;
+    } else if (activeFilter.value === 'genre') {
+      endpoint = `${API_URL}/series/genre/${searchQuery.value}`;
+    } else if (activeFilter.value === 'year') {
+      endpoint = `${API_URL}/series/year/${searchQuery.value}`;
     }
+    
+    console.log('Buscando séries em:', endpoint);
+    
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Não autorizado. Faça login novamente.');
+      }
+      throw new Error('Erro na busca');
+    }
+    
+    const data = await response.json();
+    console.log('Resultados da busca:', data);
+    series.value = data;
   } catch (err) {
     console.error('Erro na busca:', err);
     error.value = err.message || 'Não foi possível realizar a busca. Por favor, tente novamente.';
-    usuarios.value = [];
   } finally {
     loading.value = false;
   }
@@ -527,48 +531,52 @@ const setFilter = (filter) => {
   handleSearch();
 };
 
-const selectUsuario = (usuario) => {
-  selectedUsuario.value = usuario;
+const selectSerie = (serie) => {
+  selectedSerie.value = serie;
 };
 
 const closeModal = () => {
-  selectedUsuario.value = null;
-  showAddUsuario.value = false;
-  editingUsuario.value = null;
+  selectedSerie.value = null;
+  showAddSeries.value = false;
+  editingSerie.value = null;
   showDeleteConfirm.value = false;
-  deleteUsuario.value = null;
+  deleteSerie.value = null;
   resetForm();
 };
 
-const editUsuario = (usuario) => {
+const editSerie = (serie) => {
   if (!checkAuthentication()) return;
   
-  selectedUsuario.value = null;
-  editingUsuario.value = usuario;
+  selectedSerie.value = null;
+  editingSerie.value = serie;
   
-  // Preencher o formulário com os dados do usuário
-  formUsuario.value = {
-    nome: usuario.nome,
-    email: usuario.email,
-    dtNascimento: formatDateForInput(usuario.dtNascimento),
-    apelido: usuario.apelido || '',
-    senha: '', // Deixamos a senha em branco para edição
-    caminho: usuario.caminho
+  // Preencher o formulário com os dados da série
+  formSerie.value = {
+    nome: serie.nome,
+    genero: serie.genero,
+    sinopse: serie.sinopse,
+    anoLancamento: serie.anoLancamento,
+    duracao: serie.duracao,
+    temporadas: serie.temporadas,
+    episodios: serie.episodios,
+    imagemPath: serie.imagemPath
   };
   
-  if (usuario.caminho) {
-    imagePreview.value = getImageUrl(usuario.caminho);
+  if (serie.caminho) {
+    imagePreview.value = getImageUrl(serie.caminho);
   }
 };
 
 const resetForm = () => {
-  formUsuario.value = {
+  formSerie.value = {
     nome: '',
-    email: '',
-    dtNascimento: '',
-    apelido: '',
-    senha: '',
-    caminho: null
+    genero: '',
+    sinopse: '',
+    anoLancamento: new Date().getFullYear(),
+    duracao: '',
+    temporadas: 1,
+    episodios: 1,
+    imagemPath: null
   };
   
   imagePreview.value = null;
@@ -595,206 +603,153 @@ const handleFileChange = (event) => {
   reader.readAsDataURL(file);
 };
 
-const saveUsuario = async () => {
+const saveSerie = async () => {
   if (!checkAuthentication()) return;
   
   loading.value = true;
   error.value = null;
   
   try {
-    // For regular data (without file upload)
-    if (!selectedFile.value) {
-      // Use JSON instead of FormData when there's no file
-      const userData = {
-        nome: formUsuario.value.nome,
-        email: formUsuario.value.email,
-        dtNascimento: formUsuario.value.dtNascimento,
-        senha: formUsuario.value.senha
-      };
-      
-      if (formUsuario.value.apelido) {
-        userData.apelido = formUsuario.value.apelido;
-      }
-      
-      let response;
-      
-      if (editingUsuario.value) {
-        // Atualizar usuário existente
-        response = await fetch(`${API_URL}/${editingUsuario.value._id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(userData)
-        });
-      } else {
-        // Criar novo usuário
-        response = await fetch(`${API_URL}/`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(userData)
-        });
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Não autorizado. Faça login novamente.');
-        }
-        throw new Error('Erro ao salvar usuário');
-      }
-      
-      await response.json();
-      showToast(editingUsuario.value ? 'Usuário atualizado com sucesso!' : 'Usuário adicionado com sucesso!', 'success');
-    } 
-    // For FormData (with file upload)
-    else {
-      const formData = new FormData();
-      formData.append('nome', formUsuario.value.nome);
-      formData.append('email', formUsuario.value.email);
-      formData.append('dtNascimento', formUsuario.value.dtNascimento);
-      
-      if (formUsuario.value.apelido) {
-        formData.append('apelido', formUsuario.value.apelido);
-      }
-      
-      if (formUsuario.value.senha) {
-        formData.append('senha', formUsuario.value.senha);
-      }
-      
-      if (selectedFile.value) {
-        formData.append('imagem', selectedFile.value);
-      }
-      
-      // Log form data to console for debugging
-      console.log("FormData contents:");
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-      }
-      
-      let response;
-      // Não definimos os headers com Content-Type para formData para que o navegador defina o boundary correto
-      const headers = {
-        'Authorization': `Bearer ${getAuthToken()}`
-      };
-      
-      if (editingUsuario.value) {
-        // Atualizar usuário existente
-        response = await fetch(`${API_URL}/${editingUsuario.value._id}`, {
-          method: 'PUT',
-          headers: headers,
-          body: formData
-        });
-      } else {
-        // Criar novo usuário
-        response = await fetch(`${API_URL}/`, {
-          method: 'POST',
-          headers: headers,
-          body: formData
-        });
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Não autorizado. Faça login novamente.');
-        }
-        throw new Error('Erro ao salvar usuário');
-      }
-      
-      await response.json();
-      showToast(editingUsuario.value ? 'Usuário atualizado com sucesso!' : 'Usuário adicionado com sucesso!', 'success');
+    const formData = new FormData();
+    formData.append('nome', formSerie.value.nome);
+    formData.append('genero', formSerie.value.genero);
+    formData.append('sinopse', formSerie.value.sinopse);
+    formData.append('anoLancamento', formSerie.value.anoLancamento.toString());
+    formData.append('duracao', formSerie.value.duracao.toString());
+    formData.append('temporadas', formSerie.value.temporadas.toString());
+    formData.append('episodios', formSerie.value.episodios.toString());
+    
+    if (selectedFile.value) {
+      formData.append('imagem', selectedFile.value);
     }
     
-    // Recarregar a lista de usuários
-    await loadUsuarios();
+    // Log para depuração
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
+    
+    let response;
+    const token = getAuthToken();
+    
+    if (editingSerie.value) {
+      // Atualizar série existente - respeitando o formato exato do código original
+      response = await fetch(`${API_URL}/series/${editingSerie.value._id}`, {
+        method: 'PUT',
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Não autorizado. Faça login novamente.');
+        }
+        throw new Error('Erro ao atualizar série');
+      }
+      
+      await response.json();
+      showToast('Série atualizada com sucesso!', 'success');
+    } else {
+      // Criar nova série - respeitando o formato exato do código original
+      response = await fetch(`${API_URL}/series`, {
+        method: 'POST',
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Não autorizado. Faça login novamente.');
+        }
+        throw new Error('Erro ao adicionar série');
+      }
+      
+      await response.json();
+      showToast('Série adicionada com sucesso!', 'success');
+    }
+    
+    // Recarregar a lista de séries
+    await loadSeries();
     
     // Fechar o modal
     closeModal();
   } catch (err) {
-    console.error('Erro ao salvar usuário:', err);
-    error.value = err.message || 'Não foi possível salvar o usuário. Por favor, tente novamente.';
-    showToast('Erro ao salvar o usuário: ' + err.message, 'error');
+    console.error('Erro ao salvar série:', err);
+    error.value = err.message || 'Não foi possível salvar a série. Por favor, tente novamente.';
+    showToast('Erro ao salvar a série: ' + err.message, 'error');
   } finally {
     loading.value = false;
   }
 };
 
-const confirmDelete = (usuario) => {
+const confirmDelete = (serie) => {
   if (!checkAuthentication()) return;
   
-  deleteUsuario.value = usuario;
+  deleteSerie.value = serie;
   showDeleteConfirm.value = true;
-  selectedUsuario.value = null;
+  selectedSerie.value = null;
 };
 
 const cancelDelete = () => {
   showDeleteConfirm.value = false;
-  deleteUsuario.value = null;
+  deleteSerie.value = null;
 };
 
-const deleteUsuarioConfirmed = async () => {
-  if (!deleteUsuario.value || !checkAuthentication()) return;
+const deleteSerieConfirmed = async () => {
+  if (!deleteSerie.value || !checkAuthentication()) return;
   
   loading.value = true;
   error.value = null;
   
   try {
-    const response = await fetch(`${API_URL}/${deleteUsuario.value._id}`, {
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/series/${deleteSerie.value._id}`, {
       method: 'DELETE',
-      headers: getAuthHeaders()
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
     });
     
     if (!response.ok) {
       if (response.status === 401) {
         throw new Error('Não autorizado. Faça login novamente.');
       }
-      throw new Error('Erro ao excluir usuário');
+      throw new Error('Erro ao excluir série');
     }
     
     await response.json();
     
-    // Remover o usuário da lista local
-    usuarios.value = usuarios.value.filter(u => u._id !== deleteUsuario.value._id);
+    // Remover a série da lista local
+    series.value = series.value.filter(s => s._id !== deleteSerie.value._id);
     
-    showToast('Usuário excluído com sucesso!', 'success');
+    showToast('Série excluída com sucesso!', 'success');
     
     // Fechar o modal de confirmação
     showDeleteConfirm.value = false;
-    deleteUsuario.value = null;
+    deleteSerie.value = null;
   } catch (err) {
-    console.error('Erro ao excluir usuário:', err);
-    error.value = err.message || 'Não foi possível excluir o usuário. Por favor, tente novamente.';
-    showToast('Erro ao excluir o usuário: ' + err.message, 'error');
+    console.error('Erro ao excluir série:', err);
+    error.value = err.message || 'Não foi possível excluir a série. Por favor, tente novamente.';
+    showToast('Erro ao excluir a série: ' + err.message, 'error');
   } finally {
     loading.value = false;
   }
 };
 
-const calculateAge = (birthdate) => {
-  if (!birthdate) return '';
+const formatDuration = (minutes) => {
+  if (!minutes) return '';
   
-  const birthDate = new Date(birthdate);
-  const today = new Date();
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
   
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
+  if (hours > 0) {
+    return `${hours}h ${mins}min`;
   }
   
-  return age;
-};
-
-const formatDate = (dateString) => {
-  if (!dateString) return '';
-  
-  const date = new Date(dateString);
-  return date.toLocaleDateString('pt-BR');
-};
-
-const formatDateForInput = (dateString) => {
-  if (!dateString) return '';
-  
-  const date = new Date(dateString);
-  return date.toISOString().slice(0, 10);
+  return `${mins}min`;
 };
 
 const getImageUrl = (imagePath) => {
@@ -822,10 +777,10 @@ const showToast = (message, type = 'success') => {
   }, 5000);
 };
 
-// Carregar usuários ao montar o componente
+// Carregar séries ao montar o componente
 onMounted(() => {
   if (checkAuthentication()) {
-    loadUsuarios();
+    loadSeries();
   }
 });
 
@@ -840,7 +795,7 @@ watch(activeFilter, () => {
 <style scoped>
 .netflix-wrapper {
   min-height: 100vh;
-  background-color: #141414;
+  background-color: #000;
   color: #fff;
   font-family: 'Helvetica Neue', Arial, sans-serif;
   position: relative;
@@ -852,7 +807,7 @@ watch(activeFilter, () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9) 0%, rgba(20, 20, 20, 1) 100%);
+  background: #000;
   z-index: -1;
 }
 
@@ -862,7 +817,7 @@ watch(activeFilter, () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 4%;
-  background-color: rgba(0, 0, 0, 0.9);
+  background-color: #000;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -901,6 +856,7 @@ watch(activeFilter, () => {
   color: #fff;
   padding: 10px 40px 10px 16px;
   font-size: 14px;
+  height: 36px;
 }
 
 .search-box input:focus {
@@ -932,13 +888,13 @@ watch(activeFilter, () => {
   font-size: 14px;
   cursor: pointer;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: 0;
   transition: all 0.2s;
+  position: relative;
 }
 
 .filter-button:hover {
   color: #fff;
-  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .filter-button.active {
@@ -950,12 +906,12 @@ watch(activeFilter, () => {
   flex: 0 0 auto;
 }
 
-.add-movie-button {
+.add-series-button {
   background-color: #e50914;
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 10px 20px;
+  padding: 8px 16px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -965,7 +921,7 @@ watch(activeFilter, () => {
   transition: background-color 0.2s;
 }
 
-.add-movie-button:hover {
+.add-series-button:hover {
   background-color: #f40612;
 }
 
@@ -974,101 +930,61 @@ watch(activeFilter, () => {
   padding: 30px 4%;
 }
 
-/* Users Table Styles */
-.users-table-container {
-  width: 100%;
-  overflow-x: auto;
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+/* Series Grid */
+.series-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
 }
 
-.users-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: #fff;
-}
-
-.users-table thead tr {
-  background-color: rgba(0, 0, 0, 0.5);
-  border-bottom: 2px solid #e50914;
-}
-
-.users-table th {
-  padding: 16px;
-  text-align: left;
-  font-weight: 600;
-  font-size: 14px;
-  color: #e50914;
-  text-transform: uppercase;
-}
-
-.users-table td {
-  padding: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 14px;
-}
-
-.users-table tbody tr {
-  transition: background-color 0.2s;
-}
-
-.users-table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.user-image {
-  width: 80px;
-}
-
-.avatar-container {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+.series-card {
+  background-color: #000;
+  border-radius: 0;
   overflow: hidden;
-  background-color: #333;
+  transition: transform 0.2s ease;
+  cursor: pointer;
 }
 
-.avatar-container img {
+.series-card:hover {
+  transform: scale(1.05);
+}
+
+.series-poster {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  background-color: #222;
+}
+
+.series-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
+.series-poster-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+  background-color: #333;
   color: #666;
 }
 
-.user-name {
-  font-weight: 500;
-  color: #fff;
-}
-
-.user-email {
-  color: #aaa;
-}
-
-.user-nickname {
-  color: #e50914;
-  font-style: italic;
-}
-
-.user-birthdate, .user-age {
-  color: #aaa;
-}
-
-.user-actions {
-  width: 120px;
-}
-
-.actions-wrapper {
+.series-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.series-card:hover .series-actions {
+  opacity: 1;
 }
 
 .action-button {
@@ -1085,16 +1001,75 @@ watch(activeFilter, () => {
   transition: background-color 0.2s;
 }
 
-.action-button.view:hover {
-  background-color: rgba(0, 128, 128, 0.7);
-}
-
 .action-button.edit:hover {
   background-color: rgba(0, 0, 255, 0.7);
 }
 
-.action-button.delete:hover {
-  background-color: rgba(255, 0, 0, 0.7);
+.action-button.add-first {
+  background-color: #e50914;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.action-button.add-first:hover {
+  background-color: #f40612;
+}
+
+.series-info {
+  padding: 12px;
+}
+
+.series-title {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.series-meta {
+  display: flex;
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.series-year {
+  margin-right: 10px;
+}
+
+.series-genre {
+  font-size: 12px;
+  color: #0071eb;
+  background-color: rgba(0, 113, 235, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.add-first-button {
+  background-color: #e50914;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  padding: 8px 16px;
+  margin-top: 20px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.add-first-button:hover {
+  background-color: #f40612;
 }
 
 /* Loading, Error, No Results States */
@@ -1111,8 +1086,8 @@ watch(activeFilter, () => {
 }
 
 .loading-spinner {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
   border: 3px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   border-top-color: #e50914;
@@ -1126,7 +1101,7 @@ watch(activeFilter, () => {
 
 .error-container h2,
 .no-results-container h2 {
-  font-size: 24px;
+  font-size: 22px;
   margin: 20px 0 10px;
 }
 
@@ -1142,7 +1117,7 @@ watch(activeFilter, () => {
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 10px 20px;
+  padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
 }
@@ -1154,23 +1129,22 @@ watch(activeFilter, () => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  backdrop-filter: blur(5px);
 }
 
 .modal-content {
-  background-color: #181818;
-  border-radius: 6px;
+  background-color: #141414;
+  border-radius: 4px;
   position: relative;
   width: 90%;
   max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
 }
 
 .modal-close {
@@ -1196,38 +1170,30 @@ watch(activeFilter, () => {
   color: #fff;
 }
 
-/* Film Details Modal */
-.film-details {
+/* Series Details Modal */
+.series-details {
   padding: 0;
 }
 
-.film-header {
+.series-header {
   position: relative;
   display: flex;
   background-color: #333;
 }
 
-.film-poster {
+.series-poster {
   flex: 0 0 300px;
   height: 450px;
 }
 
-.film-poster img,
-.film-poster-placeholder {
+.series-poster img,
+.series-poster-placeholder {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.film-poster-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #444;
-  color: #777;
-}
-
-.film-main-info {
+.series-main-info {
   flex: 1;
   padding: 40px;
   display: flex;
@@ -1236,13 +1202,13 @@ watch(activeFilter, () => {
   background: linear-gradient(to right, rgba(0, 0, 0, 0.8), transparent);
 }
 
-.film-title {
+.series-title {
   font-size: 36px;
   font-weight: 700;
   margin: 0 0 16px;
 }
 
-.film-meta {
+.series-meta {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1250,11 +1216,11 @@ watch(activeFilter, () => {
   flex-wrap: wrap;
 }
 
-.film-meta > span {
+.series-meta > span {
   font-size: 16px;
 }
 
-.film-genre {
+.series-genre {
   color: #fff;
   background-color: rgba(229, 9, 20, 0.7);
   padding: 4px 12px;
@@ -1262,21 +1228,43 @@ watch(activeFilter, () => {
   font-weight: 500;
 }
 
-.film-body {
+.series-seasons-info {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.seasons-badge,
+.episodes-badge {
+  background-color: rgba(0, 113, 235, 0.2);
+  color: #0071eb;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.series-body {
   padding: 40px;
 }
 
-.user-email, .user-birthdate, .user-id {
+.section-title {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0 0 16px;
+  color: #e5e5e5;
+}
+
+.series-synopsis {
   font-size: 16px;
   line-height: 1.5;
   color: #aaa;
-  margin-bottom: 8px;
+  margin-bottom: 30px;
 }
 
-.film-actions {
+.series-actions {
   display: flex;
   gap: 16px;
-  margin-top: 20px;
 }
 
 .action-btn {
@@ -1301,23 +1289,23 @@ watch(activeFilter, () => {
   background-color: #e50914;
 }
 
-/* Film Form Modal */
-.film-form {
-  padding: 40px;
+/* Series Form Modal */
+.series-form {
+  padding: 30px;
   max-width: 700px;
 }
 
 .form-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
-  margin: 0 0 30px;
+  margin: 0 0 24px;
   text-align: center;
 }
 
-.movie-form {
+.series-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .form-group {
@@ -1328,7 +1316,7 @@ watch(activeFilter, () => {
   display: block;
   color: #b3b3b3;
   font-size: 14px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .form-group input,
@@ -1339,8 +1327,8 @@ watch(activeFilter, () => {
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 12px 16px;
-  font-size: 16px;
+  padding: 10px 14px;
+  font-size: 14px;
   outline: none;
   transition: background-color 0.2s;
   height: auto;
@@ -1452,8 +1440,8 @@ watch(activeFilter, () => {
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 12px;
-  font-size: 16px;
+  padding: 10px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -1465,22 +1453,22 @@ watch(activeFilter, () => {
 
 /* Confirmation Dialog */
 .confirm-dialog {
-  padding: 30px;
+  padding: 24px;
   max-width: 400px;
   text-align: center;
 }
 
 .confirm-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  margin: 0 0 16px;
+  margin: 0 0 14px;
 }
 
 .confirm-message {
   font-size: 14px;
   line-height: 1.5;
   color: #aaa;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .confirm-message strong {
@@ -1494,7 +1482,7 @@ watch(activeFilter, () => {
 
 .confirm-actions button {
   flex: 1;
-  padding: 12px;
+  padding: 10px;
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
@@ -1578,16 +1566,6 @@ watch(activeFilter, () => {
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
-  .users-table-container {
-    overflow-x: auto;
-  }
-  
-  .users-table {
-    min-width: 800px;
-  }
-}
-
 @media (max-width: 768px) {
   .netflix-header {
     flex-direction: column;
@@ -1600,24 +1578,28 @@ watch(activeFilter, () => {
     max-width: none;
   }
   
-  .film-header {
+  .series-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+  
+  .series-header {
     flex-direction: column;
   }
   
-  .film-poster {
+  .series-poster {
     flex: 0 0 auto;
     height: 300px;
   }
   
-  .film-main-info {
+  .series-main-info {
     padding: 20px;
   }
   
-  .film-title {
+  .series-title {
     font-size: 24px;
   }
   
-  .film-body {
+  .series-body {
     padding: 20px;
   }
   
@@ -1626,7 +1608,7 @@ watch(activeFilter, () => {
     gap: 20px;
   }
   
-  .film-form {
+  .series-form {
     padding: 20px;
   }
 }

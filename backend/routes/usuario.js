@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import UsuarioController from '../controllers/UsuarioController.js';
 import __dirname from '../utils/pathUtils.js'; // Make sure to import this
+import  {checarPermissao}  from '../middlewares/authMiddleware.js';
 
 // Set up storage for uploaded files
 const storage = multer.diskStorage({
@@ -36,13 +37,13 @@ const upload = multer({
 
 const routerUsuario = express.Router();
 
-routerUsuario.get('/', UsuarioController.visualizeUsuarios);
-routerUsuario.get('/:id', UsuarioController.findUsuarioById);
+routerUsuario.get('/',UsuarioController.visualizeUsuarios);
+routerUsuario.get('/:id', checarPermissao,UsuarioController.findUsuarioById);
 // Apply upload middleware to routes handling file uploads
-routerUsuario.post('/', upload.single('imagem'), UsuarioController.createUsuario); // For file uploads
-routerUsuario.put('/:id', upload.single('imagem'), UsuarioController.updateUsuario); // For file uploads
-routerUsuario.delete('/:id', UsuarioController.deleteUsuario);
-routerUsuario.get('/email/:email', UsuarioController.findUsuarioByEmail);
-routerUsuario.get('/exists/:email', UsuarioController.existsUsuario);
+routerUsuario.post('/', upload.single('imagem'), checarPermissao,UsuarioController.createUsuario); // For file uploads
+routerUsuario.put('/:id', upload.single('imagem'), checarPermissao,UsuarioController.updateUsuario); // For file uploads
+routerUsuario.delete('/:id', checarPermissao,UsuarioController.deleteUsuario);
+routerUsuario.get('/email/:email', checarPermissao,UsuarioController.findUsuarioByEmail);
+routerUsuario.get('/exists/:email', checarPermissao,UsuarioController.existsUsuario);
 
 export default routerUsuario;

@@ -1,76 +1,84 @@
-import FilmesModel from "./FilmesSchema.js";
+import SeriesModel from "./SeriesSchema.js";
 
-class Filmes {
-  constructor(nome, genero, sinopse, anoLancamento, duracao, caminho) {
+class Series {
+  constructor(nome, genero, sinopse, anoLancamento, duracao, caminho, temporadas, episodios) {
     this.nome = nome;
     this.genero = genero;
     this.sinopse = sinopse;
     this.anoLancamento = anoLancamento;
     this.duracao = duracao;
     this.caminho = caminho; // Caminho da imagem
+    this.temporadas = temporadas; // Número de temporadas
+    this.episodios = episodios; // Número total de episódios
   }
   
-  // Método para salvar um novo filme
+  // Método para salvar uma nova série
   async save() {
-    const novoFilme = new FilmesModel({
+    const novaSerie = new SeriesModel({
       nome: this.nome,
       genero: this.genero,
       sinopse: this.sinopse,
       anoLancamento: this.anoLancamento,
       duracao: this.duracao,
-      caminho: this.caminho // Campo caminho para salvar a imagem
+      caminho: this.caminho,
+      temporadas: this.temporadas,
+      episodios: this.episodios
     });
-    return await novoFilme.save();
+    return await novaSerie.save();
   }
   
-  // Método para encontrar todos os filmes
+  // Método para encontrar todas as séries
   static async findAll() {
-    return await FilmesModel.find();
+    // Certifique-se de retornar apenas documentos da coleção de séries
+    return await SeriesModel.find();
   }
   
-  // Método para encontrar filme por ID
+  // Método para encontrar série por ID
   static async findById(id) {
-    return await FilmesModel.findById(id);
+    // Garante que estamos buscando apenas séries
+    return await SeriesModel.findById(id);
   }
   
-  // Método para atualizar filme
-  static async update(id, filme) {
-    // Preparar objeto de atualização a partir da instância de Filmes
+  // Método para atualizar série
+  static async update(id, serie) {
+    // Preparar objeto de atualização a partir da instância de Series
     const updateData = {
-      nome: filme.nome,
-      genero: filme.genero,
-      sinopse: filme.sinopse,
-      anoLancamento: filme.anoLancamento,
-      duracao: filme.duracao
+      nome: serie.nome,
+      genero: serie.genero,
+      sinopse: serie.sinopse,
+      anoLancamento: serie.anoLancamento,
+      duracao: serie.duracao,
+      temporadas: serie.temporadas,
+      episodios: serie.episodios
     };
     
     // Adicionar caminho apenas se não for null ou undefined
-    if (filme.caminho) {
-      updateData.caminho = filme.caminho;
+    if (serie.caminho) {
+      updateData.caminho = serie.caminho;
     }
     
-    return await FilmesModel.findByIdAndUpdate(id, updateData, { new: true });
+    return await SeriesModel.findByIdAndUpdate(id, updateData, { new: true });
   }
   
-  // Método para excluir filme
+  // Método para excluir série
   static async delete(id) {
-    return await FilmesModel.findByIdAndDelete(id);
+    return await SeriesModel.findByIdAndDelete(id);
   }
   
-  // Método para buscar filme por nome
+  // Método para buscar série por nome
   static async searchByName(nome) {
-    return await FilmesModel.find({ nome: { $regex: nome, $options: 'i' } });
+    return await SeriesModel.find({ nome: { $regex: nome, $options: 'i' } });
   }
   
-  // Método para buscar filme por gênero
+  // Método para buscar série por gênero
   static async searchByGenre(genero) {
-    return await FilmesModel.find({ genero: { $regex: genero, $options: 'i' } });
+    return await SeriesModel.find({ genero: { $regex: genero, $options: 'i' } });
   }
   
-  // Método para buscar filme por ano de lançamento
+  // Método para buscar série por ano de lançamento
   static async searchByReleaseYear(anoLancamento) {
-    return await FilmesModel.find({ anoLancamento: { $regex: anoLancamento, $options: 'i' } });
+    return await SeriesModel.find({ anoLancamento: { $regex: anoLancamento, $options: 'i' } });
   }
 }
 
-export default Filmes;
+export default Series;

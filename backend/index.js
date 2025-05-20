@@ -14,7 +14,10 @@ import {
 } from './middlewares/middleware.js'
 import filmesRouter from './routes/filme.js';
 import userRouter from './routes/usuario.js';
+import seriesRouter from './routes/series.js';
+import loginRouter from './routes/login.js';
 import connectBD from './config/db.js'
+
 
 
 
@@ -48,7 +51,8 @@ app.use(morganMiddleware)
 // Rotas
 app.use('/filmes', filmesRouter)
 app.use('/usuario', userRouter)
-
+app.use('/series', seriesRouter)
+app.use('/login', loginRouter)
 // Inicialização do servidor
 app.listen(port, () => {
   console.log(`Servidor ativo rodando na porta ${port}`)

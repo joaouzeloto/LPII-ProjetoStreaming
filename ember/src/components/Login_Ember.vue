@@ -1,8 +1,8 @@
-<template>
+<template> 
   <div class="login-wrapper">
     <div class="login-bg-overlay"></div>
     <div class="logo-container">
-      <h1 class="site-logo">Net-Flix</h1>
+      <!-- Logo aqui -->
     </div>
     
     <div class="login-container">
@@ -10,6 +10,8 @@
         <h2 class="login-title">Entrar</h2>
         
         <form class="login-form" @submit.prevent="handleLogin">
+          <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+          
           <div class="form-group">
             <label for="email">Email ou telefone</label>
             <input 
@@ -32,8 +34,8 @@
             />
           </div>
           
-          <button type="submit" class="login-button">
-            Entrar
+          <button type="submit" class="login-button" :disabled="loading">
+            {{ loading ? 'Carregando...' : 'Entrar' }}
           </button>
           
           <div class="login-options">
@@ -52,7 +54,7 @@
             <span>ou</span>
           </div>
           
-          <button class="guest-button">
+          <button class="guest-button" @click="continuarComoConvidado">
             Continuar como convidado
           </button>
         </div>
@@ -63,15 +65,80 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
 const email = ref('')
 const password = ref('')
 const remember = ref(false)
+const loading = ref(false)
+const errorMessage = ref('')
 
-const handleLogin = () => {
-  console.log('Login com:', email.value, password.value)
+const router = useRouter()
+
+async function handleLogin() {
+  errorMessage.value = ''
+  loading.value = true
+
+  try {
+    const res = await fetch('http://localhost:3000/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email: email.value,
+        senha: password.value
+      })
+    })
+
+    const data = await res.json()
+
+    if (!res.ok) {
+      // Exibe a mensagem de erro do backend
+      errorMessage.value = data.msg || 'Erro ao fazer login.'
+      loading.value = false
+      return
+    }
+
+    // Salva no localStorage
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('isFuncionario', data.isFuncionario)
+    localStorage.setItem('pessoa_id', data.pessoa_id)
+
+    // Se o usuário não marcou "lembrar", você pode armazenar no sessionStorage em vez de localStorage
+    if (!remember.value) {
+      sessionStorage.setItem('token', data.token)
+      sessionStorage.setItem('isFuncionario', data.isFuncionario)
+      sessionStorage.setItem('pessoa_id', data.pessoa_id)
+    }
+
+    // Redireciona para a rota desejada após o login
+    router.push({ name: 'Home' })
+
+  } catch (err) {
+    console.error(err)
+    errorMessage.value = 'Erro de conexão. Tente novamente mais tarde.'
+  } finally {
+    loading.value = false
+  }
 }
+
+
 </script>
+
+<style scoped>
+/* ... seu CSS continua igual ... */
+
+.error-message {
+  color: #e87c03;
+  background: #333;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+</style>
+
 
 <style scoped>
 .login-wrapper {

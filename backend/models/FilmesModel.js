@@ -57,6 +57,10 @@ class Filmes {
     static async searchByReleaseYear(anoLancamento) {
         return await FilmesModel.find({ anoLancamento: { $regex: anoLancamento, $options: 'i' } }); // Busca filme pelo ano de lançamento (case insensitive)
     }
+
+    static async fundByIdAndDelete(id) {
+        return await FilmesModel.findByIdAndDelete(id); // Exclui o filme pelo ID
+    }
 }
 
 export default Filmes;

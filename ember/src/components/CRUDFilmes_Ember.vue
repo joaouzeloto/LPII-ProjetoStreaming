@@ -397,18 +397,60 @@ const selectedFileName = ref('');
 const selectedFile = ref(null);
 const toasts = ref([]);
 
+// Função auxiliar para obter o token de autenticação
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Função auxiliar para criar headers com autenticação
+const getAuthHeaders = (contentType = 'application/json') => {
+  const token = getAuthToken();
+  const headers = {
+    'Authorization': `Bearer ${token}`
+  };
+  
+  if (contentType) {
+    headers['Content-Type'] = contentType;
+  }
+  
+  return headers;
+};
+
+// Verificar se o token existe
+const checkAuthentication = () => {
+  const token = getAuthToken();
+  if (!token) {
+    // Redirecionar para a página de login ou mostrar mensagem
+    showToast('Usuário não autenticado. Faça login para continuar.', 'error');
+    // Você pode adicionar um redirecionamento aqui se necessário
+    // window.location.href = '/login';
+    return false;
+  }
+  return true;
+};
+
 // Métodos
 const loadFilmes = async () => {
   loading.value = true;
   error.value = null;
   
   try {
-    const response = await fetch(`${API_URL}/filmes`);
-    if (!response.ok) throw new Error('Erro ao carregar filmes');
+    const response = await fetch(`${API_URL}/filmes`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Não autorizado. Faça login novamente.');
+      }
+      throw new Error('Erro ao carregar filmes');
+    }
+    
     filmes.value = await response.json();
   } catch (err) {
     console.error('Erro ao carregar filmes:', err);
-    error.value = 'Não foi possível carregar os filmes. Por favor, tente novamente.';
+    error.value = err.message || 'Não foi possível carregar os filmes. Por favor, tente novamente.';
   } finally {
     loading.value = false;
   }
@@ -429,19 +471,27 @@ const handleSearch = async () => {
     if (activeFilter.value === 'all') {
       endpoint = `${API_URL}/filmes/search/${searchQuery.value}`;
     } else if (activeFilter.value === 'genre') {
-      // Assumindo que a API suporta busca por gênero
       endpoint = `${API_URL}/filmes/genre/${searchQuery.value}`;
     } else if (activeFilter.value === 'year') {
-      // Assumindo que a API suporta busca por ano
       endpoint = `${API_URL}/filmes/year/${searchQuery.value}`;
     }
     
-    const response = await fetch(endpoint);
-    if (!response.ok) throw new Error('Erro na busca');
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Não autorizado. Faça login novamente.');
+      }
+      throw new Error('Erro na busca');
+    }
+    
     filmes.value = await response.json();
   } catch (err) {
     console.error('Erro na busca:', err);
-    error.value = 'Não foi possível realizar a busca. Por favor, tente novamente.';
+    error.value = err.message || 'Não foi possível realizar a busca. Por favor, tente novamente.';
   } finally {
     loading.value = false;
   }
@@ -466,6 +516,8 @@ const closeModal = () => {
 };
 
 const editFilme = (filme) => {
+  if (!checkAuthentication()) return;
+  
   selectedFilme.value = null;
   editingFilme.value = filme;
   
@@ -479,8 +531,8 @@ const editFilme = (filme) => {
     imagemPath: filme.imagemPath
   };
   
-  if (filme.imagemPath) {
-    imagePreview.value = getImageUrl(filme.imagemPath);
+  if (filme.caminho) {
+    imagePreview.value = getImageUrl(filme.caminho);
   }
 };
 
@@ -519,6 +571,8 @@ const handleFileChange = (event) => {
 };
 
 const saveFilme = async () => {
+  if (!checkAuthentication()) return;
+  
   loading.value = true;
   error.value = null;
   
@@ -540,27 +594,45 @@ const saveFilme = async () => {
     }
     
     let response;
+    const token = getAuthToken();
+    
+    // Não definimos os headers com Content-Type para formData para que o navegador defina o boundary correto
+    const headers = {
+      'Authorization': `Bearer ${token}`
+    };
     
     if (editingFilme.value) {
       // Atualizar filme existente
       response = await fetch(`${API_URL}/filmes/${editingFilme.value._id}`, {
         method: 'PUT',
+        headers: headers,
         body: formData
-        // Não definimos 'Content-Type' para que o navegador defina o boundary correto para o multipart/form-data
       });
       
-      if (!response.ok) throw new Error('Erro ao atualizar filme');
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Não autorizado. Faça login novamente.');
+        }
+        throw new Error('Erro ao atualizar filme');
+      }
+      
       await response.json();
       showToast('Filme atualizado com sucesso!', 'success');
     } else {
       // Criar novo filme
       response = await fetch(`${API_URL}/filmes`, {
         method: 'POST',
+        headers: headers,
         body: formData
-        // Não definimos 'Content-Type' para que o navegador defina o boundary correto para o multipart/form-data
       });
       
-      if (!response.ok) throw new Error('Erro ao adicionar filme');
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Não autorizado. Faça login novamente.');
+        }
+        throw new Error('Erro ao adicionar filme');
+      }
+      
       await response.json();
       showToast('Filme adicionado com sucesso!', 'success');
     }
@@ -572,14 +644,16 @@ const saveFilme = async () => {
     closeModal();
   } catch (err) {
     console.error('Erro ao salvar filme:', err);
-    error.value = 'Não foi possível salvar o filme. Por favor, tente novamente.';
-    showToast('Erro ao salvar o filme!', 'error');
+    error.value = err.message || 'Não foi possível salvar o filme. Por favor, tente novamente.';
+    showToast('Erro ao salvar o filme: ' + err.message, 'error');
   } finally {
     loading.value = false;
   }
 };
 
 const confirmDelete = (filme) => {
+  if (!checkAuthentication()) return;
+  
   deleteFilme.value = filme;
   showDeleteConfirm.value = true;
   selectedFilme.value = null;
@@ -591,17 +665,24 @@ const cancelDelete = () => {
 };
 
 const deleteFilmeConfirmed = async () => {
-  if (!deleteFilme.value) return;
+  if (!deleteFilme.value || !checkAuthentication()) return;
   
   loading.value = true;
   error.value = null;
   
   try {
     const response = await fetch(`${API_URL}/filmes/${deleteFilme.value._id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: getAuthHeaders()
     });
     
-    if (!response.ok) throw new Error('Erro ao excluir filme');
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Não autorizado. Faça login novamente.');
+      }
+      throw new Error('Erro ao excluir filme');
+    }
+    
     await response.json();
     
     // Remover o filme da lista local
@@ -614,8 +695,8 @@ const deleteFilmeConfirmed = async () => {
     deleteFilme.value = null;
   } catch (err) {
     console.error('Erro ao excluir filme:', err);
-    error.value = 'Não foi possível excluir o filme. Por favor, tente novamente.';
-    showToast('Erro ao excluir o filme!', 'error');
+    error.value = err.message || 'Não foi possível excluir o filme. Por favor, tente novamente.';
+    showToast('Erro ao excluir o filme: ' + err.message, 'error');
   } finally {
     loading.value = false;
   }
@@ -661,12 +742,16 @@ const showToast = (message, type = 'success') => {
 
 // Carregar filmes ao montar o componente
 onMounted(() => {
-  loadFilmes();
+  if (checkAuthentication()) {
+    loadFilmes();
+  }
 });
 
 // Observar mudanças no filtro ativo
 watch(activeFilter, () => {
-  handleSearch();
+  if (checkAuthentication()) {
+    handleSearch();
+  }
 });
 </script>
 

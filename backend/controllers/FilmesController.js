@@ -77,7 +77,7 @@ class FilmesController {
         try {
             const { id } = req.params;
             
-            const deletedFilme = await Filmes.findByIdAndDelete(id);
+            const deletedFilme = await Filmes.fundByIdAndDelete(id);
             
             if (!deletedFilme) {
                 return res.status(404).json({ message: 'Filme não encontrado' });

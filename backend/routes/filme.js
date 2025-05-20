@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import FilmesController from '../controllers/FilmesController.js';
 import __dirname from '../utils/pathUtils.js';
+import  {checarPermissao}  from '../middlewares/authMiddleware.js';
 
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -31,13 +32,13 @@ const routerFilme = express.Router();
 routerFilme.use('/uploads', express.static(path.join(__dirname, '../ember/uploads')));
 
 // Rotas
-routerFilme.get('/', FilmesController.visualizeFilmes);
-routerFilme.post('/', upload.single('imagem'), FilmesController.createFilme);
-routerFilme.put('/:id', upload.single('imagem'), FilmesController.updateFilme);
-routerFilme.delete('/:id', FilmesController.deleteFilme);
-routerFilme.get('/:id', FilmesController.visualizeFilmeById);
-routerFilme.get('/search/:nome', FilmesController.searchFilmeByName);
-routerFilme.get('/genre/:genero', FilmesController.searchFilmeByGenre);
-routerFilme.get('/year/:anoLancamento', FilmesController.searchFilmeByReleaseYear);
+routerFilme.get('/', checarPermissao,FilmesController.visualizeFilmes);
+routerFilme.post('/', upload.single('imagem'), checarPermissao,FilmesController.createFilme);
+routerFilme.put('/:id', upload.single('imagem'), checarPermissao,FilmesController.updateFilme);
+routerFilme.delete('/:id', checarPermissao,FilmesController.deleteFilme);
+routerFilme.get('/:id', checarPermissao,FilmesController.visualizeFilmeById);
+routerFilme.get('/search/:nome', checarPermissao,FilmesController.searchFilmeByName);
+routerFilme.get('/genre/:genero', checarPermissao,FilmesController.searchFilmeByGenre);
+routerFilme.get('/year/:anoLancamento', checarPermissao,FilmesController.searchFilmeByReleaseYear);
 
 export default routerFilme;
