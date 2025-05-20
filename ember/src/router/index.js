@@ -4,13 +4,17 @@ import DashCadastro from '@/components/DashCadastro_Ember.vue'
 import DashFilmes from '@/components/DashFilmes_Ember.vue'
 import DashUser from '@/components/DashUser_Ember.vue'
 import DashSeries from '@/components/DashSeries_Ember.vue'
+import DashHome from '@/components/DashHome_Ember.vue'
+import DashHomeAdmin from '@/components/DashHomeAdmin_Ember.vue'
 
 const routes = [
   {path: '/', component: DashLogin},
   {path: '/cadastro', component: DashCadastro},
   {path: '/filmes', component: DashFilmes, meta: { requiresAuth: true, requiresFuncionario: true }},
   {path: '/series', component: DashSeries, meta: { requiresAuth: true, requiresFuncionario: true }},
-  {path: '/user', component: DashUser, meta: { requiresAuth: true, requiresFuncionario: true }},
+  {path: '/user', component: DashUser, meta: { requiresAuth: true,  }},
+  {path: '/home', component: DashHome, meta: { requiresAuth: true }},
+  {path: '/homeAdmin', component: DashHomeAdmin, meta: { requiresAuth: true, requiresFuncionario: true }},
 ];
 
 const router = createRouter({

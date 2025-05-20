@@ -37,26 +37,10 @@
           <button type="submit" class="login-button" :disabled="loading">
             {{ loading ? 'Carregando...' : 'Entrar' }}
           </button>
-          
-          <div class="login-options">
-            <div class="remember-me">
-              <input type="checkbox" id="remember" v-model="remember">
-              <label for="remember">Lembrar de mim</label>
-            </div>
-            <a href="#" class="help-link">Precisa de ajuda?</a>
-          </div>
         </form>
         
-        <div class="login-alt">
-          <p class="new-here">Novo por aqui? <a href="#">Assine agora</a>.</p>
-          
-          <div class="or-divider">
-            <span>ou</span>
-          </div>
-          
-          <button class="guest-button" @click="continuarComoConvidado">
-            Continuar como convidado
-          </button>
+        <div class="register-link">
+          <a href="/cadastro">Cadastre-se</a>
         </div>
       </div>
     </div>
@@ -69,7 +53,6 @@ import { useRouter } from 'vue-router'
 
 const email = ref('')
 const password = ref('')
-const remember = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
 
@@ -105,15 +88,13 @@ async function handleLogin() {
     localStorage.setItem('isFuncionario', data.isFuncionario)
     localStorage.setItem('pessoa_id', data.pessoa_id)
 
-    // Se o usuário não marcou "lembrar", você pode armazenar no sessionStorage em vez de localStorage
-    if (!remember.value) {
-      sessionStorage.setItem('token', data.token)
-      sessionStorage.setItem('isFuncionario', data.isFuncionario)
-      sessionStorage.setItem('pessoa_id', data.pessoa_id)
-    }
-
     // Redireciona para a rota desejada após o login
-    router.push({ name: 'Home' })
+    if (data.isFuncionario) {
+      window.location.href = '/homeAdmin';
+    } else {
+      window.location.href = '/home';
+    }
+    
 
   } catch (err) {
     console.error(err)
@@ -122,23 +103,7 @@ async function handleLogin() {
     loading.value = false
   }
 }
-
-
 </script>
-
-<style scoped>
-/* ... seu CSS continua igual ... */
-
-.error-message {
-  color: #e87c03;
-  background: #333;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 16px;
-  text-align: center;
-}
-</style>
-
 
 <style scoped>
 .login-wrapper {
@@ -262,90 +227,28 @@ async function handleLogin() {
   background-color: #f40612;
 }
 
-.login-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 10px;
-  color: #b3b3b3;
-  font-size: 13px;
+.register-link {
+  margin-top: 20px;
+  text-align: center;
 }
 
-.remember-me {
-  display: flex;
-  align-items: center;
-}
-
-.remember-me input {
-  margin-right: 5px;
-}
-
-.help-link {
-  color: #b3b3b3;
+.register-link a {
+  color: #fff;
   text-decoration: none;
+  font-size: 16px;
 }
 
-.help-link:hover {
+.register-link a:hover {
   text-decoration: underline;
 }
 
-.login-alt {
-  margin-top: 40px;
-}
-
-.new-here {
-  color: #737373;
-  font-size: 16px;
-  margin-bottom: 24px;
-}
-
-.new-here a {
-  color: #fff;
-  text-decoration: none;
-}
-
-.new-here a:hover {
-  text-decoration: underline;
-}
-
-.or-divider {
-  display: flex;
-  align-items: center;
-  margin: 15px 0;
-}
-
-.or-divider::before,
-.or-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background-color: #333;
-}
-
-.or-divider span {
-  color: #b3b3b3;
-  padding: 0 10px;
-  font-size: 14px;
-}
-
-.guest-button {
-  width: 100%;
-  background-color: transparent;
-  color: #fff;
-  font-size: 16px;
-  border: 1px solid #333;
+.error-message {
+  color: #e87c03;
+  background: #333;
+  padding: 12px;
   border-radius: 4px;
-  padding: 15px;
-  cursor: pointer;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  transition: all 0.2s;
-}
-
-.guest-button:hover {
-  border-color: #666;
-  background-color: rgba(255, 255, 255, 0.05);
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 @media (max-width: 480px) {

@@ -4,11 +4,12 @@ import bcrypt from 'bcryptjs';
 import validator from 'validator';
 import Usuario from '../models/UsuarioModel.js';
 
-const SALT_ROUNDS = 50;
+const SALT_ROUNDS = 10;
 
 class UsuarioController {
     static async createUsuario(req, res) {
     try {
+        console.log('Criando usuário...');
         const { nome, email, dtNascimento, apelido, senha, role } = req.body;
         const endereco = req.body.endereco;
         const caminho = req.file ? req.file.filename : undefined;
@@ -42,6 +43,7 @@ class UsuarioController {
                 enderecoFormatado = JSON.parse(endereco);
             } catch (e) {
                 // Se não for um JSON válido, mantém o valor original
+                console.error('Erro ao fazer parsing do endereço:', e);
             }
         }
         
@@ -60,6 +62,7 @@ class UsuarioController {
         // Salvar usando o método da classe wrapper
         const novoUsuario = await usuario.save();
 
+        console.log('Usuário criado com sucesso:', novoUsuario);
         return res.status(201).json({ 
             message: 'Usuário criado com sucesso',
             usuario: {
@@ -80,6 +83,7 @@ class UsuarioController {
     static async visualizeUsuarios(req, res) {
         try {
             const usuarios = await Usuario.findAll();
+            console.log('Usuários encontrados:', usuarios);
             return res.status(200).json(usuarios);
         } catch (error) {
             console.error('Erro ao visualizar os usuários:', error);

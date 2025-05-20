@@ -40,7 +40,7 @@ const routerUsuario = express.Router();
 routerUsuario.get('/',UsuarioController.visualizeUsuarios);
 routerUsuario.get('/:id', checarPermissao,UsuarioController.findUsuarioById);
 // Apply upload middleware to routes handling file uploads
-routerUsuario.post('/', upload.single('imagem'), checarPermissao,UsuarioController.createUsuario); // For file uploads
+routerUsuario.post('/', upload.single('imagem'), UsuarioController.createUsuario); // For file uploads
 routerUsuario.put('/:id', upload.single('imagem'), checarPermissao,UsuarioController.updateUsuario); // For file uploads
 routerUsuario.delete('/:id', checarPermissao,UsuarioController.deleteUsuario);
 routerUsuario.get('/email/:email', checarPermissao,UsuarioController.findUsuarioByEmail);

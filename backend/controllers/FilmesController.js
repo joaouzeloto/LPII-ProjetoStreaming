@@ -4,8 +4,6 @@ import Filmes from '../models/FilmesModel.js';
 class FilmesController {
  static async createFilme(req, res) {
         try {
-            console.log('Body recebido:', req.body);
-            console.log('Arquivo recebido:', req.file);
             
             const { nome, genero, sinopse, anoLancamento, duracao } = req.body;
             
@@ -64,7 +62,7 @@ class FilmesController {
     static async visualizeFilmes(req, res) {
         try {
             const filmes = await Filmes.findAll();
-            console.log('Filmes encontrados:', filmes);
+           
             res.status(200).json(filmes);
         } catch (error) {
             console.error('Erro ao visualizar os filmes:', error);

@@ -1,4 +1,7 @@
-<template>
+.toast-content {
+  flex: 1;
+  font-size: 14px;
+}<template>
   <div class="netflix-wrapper">
     <div class="netflix-bg-overlay"></div>
     
@@ -99,6 +102,7 @@
               <th>Apelido</th>
               <th>Data de Nascimento</th>
               <th>Idade</th>
+              <th>Cidade/Estado</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -124,6 +128,7 @@
               <td class="user-nickname">{{ usuario.apelido || '-' }}</td>
               <td class="user-birthdate">{{ formatDate(usuario.dtNascimento) }}</td>
               <td class="user-age">{{ calculateAge(usuario.dtNascimento) }} anos</td>
+              <td class="user-location">{{ getLocationInfo(usuario) }}</td>
               <td class="user-actions">
                 <div class="actions-wrapper">
                   <button class="action-button view" @click="selectUsuario(usuario)" title="Ver detalhes">
@@ -180,6 +185,7 @@
             <div class="film-meta">
               <span class="film-year">{{ calculateAge(selectedUsuario.dtNascimento) }} anos</span>
               <span class="film-genre" v-if="selectedUsuario.apelido">{{ selectedUsuario.apelido }}</span>
+              <span class="film-role">{{ selectedUsuario.role || 'admin' }}</span>
             </div>
             <p class="user-email">{{ selectedUsuario.email }}</p>
             <p class="user-birthdate">Data de Nascimento: {{ formatDate(selectedUsuario.dtNascimento) }}</p>
@@ -188,6 +194,25 @@
         </div>
         
         <div class="film-body">
+          <div class="user-address-section" v-if="selectedUsuario.endereco">
+            <h3>Endereço</h3>
+             <div class="address-details">
+      <!-- Se o endereço for uma string única -->
+      <div v-if="typeof selectedUsuario.endereco === 'string'">
+        <p>{{ selectedUsuario.endereco }}</p>
+      </div>
+      
+      <!-- Se o endereço for um objeto (para compatibilidade) -->
+      <template v-else>
+        <p><strong>CEP:</strong> {{ selectedUsuario.endereco.cep }}</p>
+        <p><strong>Rua:</strong> {{ selectedUsuario.endereco.rua }}, {{ selectedUsuario.endereco.numero }}</p>
+        <p v-if="selectedUsuario.endereco.complemento"><strong>Complemento:</strong> {{ selectedUsuario.endereco.complemento }}</p>
+        <p><strong>Bairro:</strong> {{ selectedUsuario.endereco.bairro }}</p>
+        <p><strong>Cidade:</strong> {{ selectedUsuario.endereco.cidade }} - {{ selectedUsuario.endereco.estado }}</p>
+      </template>
+    </div>
+  </div>
+          
           <div class="film-actions">
             <button class="action-btn edit" @click="editUsuario(selectedUsuario)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -220,71 +245,211 @@
         <h2 class="form-title">{{ editingUsuario ? 'Editar Usuário' : 'Adicionar Usuário' }}</h2>
         
         <form class="movie-form" @submit.prevent="saveUsuario">
-          <div class="form-group">
-            <label for="nome">Nome Completo</label>
-            <input 
-              type="text" 
-              id="nome" 
-              v-model="formUsuario.nome" 
-              placeholder="Digite o nome completo"
-              required
-            />
-          </div>
-          
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input 
-              type="email" 
-              id="email" 
-              v-model="formUsuario.email" 
-              placeholder="Digite o email"
-              required
-            />
-          </div>
-          
-          <div class="form-row">
+          <!-- Informações pessoais -->
+          <div class="form-section">
+            <h3 class="section-title">Informações pessoais</h3>
+            
             <div class="form-group">
-              <label for="dtNascimento">Data de Nascimento</label>
+              <label for="nome">Nome completo</label>
               <input 
-                type="date" 
-                id="dtNascimento" 
-                v-model="formUsuario.dtNascimento" 
+                type="text" 
+                id="nome" 
+                v-model="formUsuario.nome" 
+                placeholder="Digite o nome completo"
                 required
               />
             </div>
             
             <div class="form-group">
-              <label for="apelido">Apelido (opcional)</label>
+              <label for="email">Email</label>
               <input 
-                type="text" 
-                id="apelido" 
-                v-model="formUsuario.apelido" 
-                placeholder="Apelido"
+                type="email" 
+                id="email" 
+                v-model="formUsuario.email" 
+                placeholder="Digite o email"
+                required
               />
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dtNascimento">Data de Nascimento</label>
+                <input 
+                  type="date" 
+                  id="dtNascimento" 
+                  v-model="formUsuario.dtNascimento" 
+                  required
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="apelido">Apelido (opcional)</label>
+                <input 
+                  type="text" 
+                  id="apelido" 
+                  v-model="formUsuario.apelido" 
+                  placeholder="Apelido"
+                />
+              </div>
+            </div>
+            
+            <!-- Campo de papel/role -->
+            <div class="form-group">
+              <label for="role">Função do Usuário</label>
+              <select id="role" v-model="formUsuario.role">
+                <option value="admin">Administrador</option>
+                <option value="user">Usuário</option>
+              </select>
             </div>
           </div>
           
-          <div class="form-group" v-if="!editingUsuario">
-            <label for="senha">Senha</label>
-            <input 
-              type="password" 
-              id="senha" 
-              v-model="formUsuario.senha" 
-              placeholder="Digite a senha"
-              minlength="6"
-              required
-            />
+          <!-- Endereço -->
+          <div class="form-section">
+            <h3 class="section-title">Endereço</h3>
+            
+            <div class="form-group">
+              <label for="cep">CEP</label>
+              <div class="cep-input">
+                <input 
+                  type="text" 
+                  id="cep" 
+                  v-model="formUsuario.endereco.cep" 
+                  placeholder="00000-000"
+                  @blur="fetchAddressData"
+                  required
+                />
+                <div v-if="cepLoading" class="loading-spinner"></div>
+              </div>
+              <p v-if="cepError" class="error-message">{{ cepError }}</p>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="rua">Rua</label>
+                <input 
+                  type="text" 
+                  id="rua" 
+                  v-model="formUsuario.endereco.rua" 
+                  placeholder="Nome da rua"
+                  :class="{ 'auto-filled': autoFilled }"
+                  required
+                />
+              </div>
+              
+              <div class="form-group small">
+                <label for="numero">Número</label>
+                <input 
+                  type="text" 
+                  id="numero" 
+                  v-model="formUsuario.endereco.numero" 
+                  placeholder="Nº"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="bairro">Bairro</label>
+                <input 
+                  type="text" 
+                  id="bairro" 
+                  v-model="formUsuario.endereco.bairro" 
+                  placeholder="Seu bairro"
+                  :class="{ 'auto-filled': autoFilled }"
+                  required
+                />
+              </div>
+              
+              <div class="form-group">
+                <label for="complemento">Complemento</label>
+                <input 
+                  type="text" 
+                  id="complemento" 
+                  v-model="formUsuario.endereco.complemento" 
+                  placeholder="Apto, bloco, etc. (opcional)"
+                />
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cidade">Cidade</label>
+                <input 
+                  type="text" 
+                  id="cidade" 
+                  v-model="formUsuario.endereco.cidade" 
+                  placeholder="Sua cidade"
+                  :class="{ 'auto-filled': autoFilled }"
+                  required
+                />
+              </div>
+              
+              <div class="form-group small">
+                <label for="estado">Estado</label>
+                <input 
+                  type="text" 
+                  id="estado" 
+                  v-model="formUsuario.endereco.estado" 
+                  placeholder="UF"
+                  :class="{ 'auto-filled': autoFilled }"
+                  required
+                />
+              </div>
+            </div>
           </div>
           
-          <div class="form-group" v-if="editingUsuario">
-            <label for="senha">Nova Senha (opcional)</label>
-            <input 
-              type="password" 
-              id="senha" 
-              v-model="formUsuario.senha" 
-              placeholder="Deixe em branco para manter a senha atual"
-              minlength="6"
-            />
+          <!-- Segurança -->
+          <div class="form-section">
+            <h3 class="section-title">Segurança</h3>
+            
+            <div class="form-group" v-if="!editingUsuario">
+              <label for="senha">Senha</label>
+              <div class="password-input">
+                <input 
+                  :type="showPassword ? 'text' : 'password'" 
+                  id="senha" 
+                  v-model="formUsuario.senha" 
+                  placeholder="Digite a senha (mínimo 6 caracteres)"
+                  minlength="6"
+                  required
+                />
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  @click="showPassword = !showPassword"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path v-if="!showPassword" d="M12 5C7.5 5 3.7 7.6 2 11.5C3.7 15.4 7.5 18 12 18C16.5 18 20.3 15.4 22 11.5C20.3 7.6 16.5 5 12 5ZM12 16C9.8 16 8 14.2 8 12C8 9.8 9.8 8 12 8C14.2 8 16 9.8 16 12C16 14.2 14.2 16 12 16ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z" fill="currentColor"/>
+                    <path v-else d="M2 5.27L3.28 4L20 20.72L18.73 22L15.65 18.92C14.5 19.3 13.28 19.5 12 19.5C7.5 19.5 3.7 16.9 2 13C2.88 11.07 4.34 9.5 6.21 8.4L2 4.19L2 5.27ZM12 7C9.24 7 7 9.24 7 12C7 12.7 7.15 13.36 7.43 13.96L6.18 12.71C6.07 12.5 6 12.26 6 12C6 8.69 8.69 6 12 6C12.26 6 12.5 6.07 12.71 6.18L11.56 7.33C11.08 7.13 10.56 7 10 7L12 9V7ZM22 13C21.36 14.33 20.45 15.5 19.33 16.47L17.89 15.03C19.08 13.71 19.97 12.1 20.5 10.24C19.37 7.56 16.72 5.6 13.62 5.11L12.22 3.71C18.0 4.21 22 8.14 22 13ZM12 17C14.76 17 17 14.76 17 12C17 11.3 16.85 10.64 16.57 10.04L14.12 7.59C15.63 8.83 16 10.17 16 12C16 15.31 13.31 18 10 18L12 16V17Z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
+              <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
+            </div>
+            
+            <div class="form-group" v-if="editingUsuario">
+              <label for="senha">Nova Senha (opcional)</label>
+              <div class="password-input">
+                <input 
+                  :type="showPassword ? 'text' : 'password'" 
+                  id="senha" 
+                  v-model="formUsuario.senha" 
+                  placeholder="Deixe em branco para manter a senha atual"
+                  minlength="6"
+                />
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  @click="showPassword = !showPassword"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path v-if="!showPassword" d="M12 5C7.5 5 3.7 7.6 2 11.5C3.7 15.4 7.5 18 12 18C16.5 18 20.3 15.4 22 11.5C20.3 7.6 16.5 5 12 5ZM12 16C9.8 16 8 14.2 8 12C8 9.8 9.8 8 12 8C14.2 8 16 9.8 16 12C16 14.2 14.2 16 12 16ZM12 10C10.9 10 10 10.9 10 12C10 13.1 10.9 14 12 14C13.1 14 14 13.1 14 12C14 10.9 13.1 10 12 10Z" fill="currentColor"/>
+                    <path v-else d="M2 5.27L3.28 4L20 20.72L18.73 22L15.65 18.92C14.5 19.3 13.28 19.5 12 19.5C7.5 19.5 3.7 16.9 2 13C2.88 11.07 4.34 9.5 6.21 8.4L2 4.19L2 5.27ZM12 7C9.24 7 7 9.24 7 12C7 12.7 7.15 13.36 7.43 13.96L6.18 12.71C6.07 12.5 6 12.26 6 12C6 8.69 8.69 6 12 6C12.26 6 12.5 6.07 12.71 6.18L11.56 7.33C11.08 7.13 10.56 7 10 7L12 9V7ZM22 13C21.36 14.33 20.45 15.5 19.33 16.47L17.89 15.03C19.08 13.71 19.97 12.1 20.5 10.24C19.37 7.56 16.72 5.6 13.62 5.11L12.22 3.71C18.0 4.21 22 8.14 22 13ZM12 17C14.76 17 17 14.76 17 12C17 11.3 16.85 10.64 16.57 10.04L14.12 7.59C15.63 8.83 16 10.17 16 12C16 15.31 13.31 18 10 18L12 16V17Z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
           
           <div class="form-group">
@@ -312,9 +477,10 @@
           </div>
           
           <div class="form-actions">
-            <button type="button" class="cancel-button" @click="closeModal">Cancelar</button>
-            <button type="submit" class="save-button">
-              {{ editingUsuario ? 'Atualizar' : 'Salvar' }}
+            <button type="button" class="cancel-button" @click="closeModal" :disabled="showModalLoading">Cancelar</button>
+            <button type="submit" class="save-button" :disabled="showModalLoading">
+              <span v-if="showModalLoading" class="button-spinner"></span>
+              <span v-else>{{ editingUsuario ? 'Atualizar' : 'Salvar' }}</span>
             </button>
           </div>
         </form>
@@ -360,6 +526,11 @@
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
           </svg>
+          <svg v-else-if="toast.type === 'info'" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
         </div>
         <div class="toast-content">{{ toast.message }}</div>
       </div>
@@ -368,7 +539,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 
 // API base URL
 const API_URL = 'http://localhost:3000/usuario';
@@ -388,7 +559,17 @@ const formUsuario = ref({
   dtNascimento: '',
   apelido: '',
   senha: '',
-  caminho: null
+  caminho: null,
+  role: 'admin', // Definindo 'admin' como valor padrão
+  endereco: {
+    cep: '',
+    rua: '',
+    numero: '',
+    bairro: '',
+    complemento: '',
+    cidade: '',
+    estado: ''
+  }
 });
 const showDeleteConfirm = ref(false);
 const deleteUsuario = ref(null);
@@ -396,6 +577,12 @@ const imagePreview = ref(null);
 const selectedFileName = ref('');
 const selectedFile = ref(null);
 const toasts = ref([]);
+const showModalLoading = ref(false);
+const showPassword = ref(false);
+const cepLoading = ref(false);
+const cepError = ref('');
+const autoFilled = ref(false);
+const passwordError = ref('');
 
 // Função auxiliar para obter o token de autenticação
 const getAuthToken = () => {
@@ -553,7 +740,17 @@ const editUsuario = (usuario) => {
     dtNascimento: formatDateForInput(usuario.dtNascimento),
     apelido: usuario.apelido || '',
     senha: '', // Deixamos a senha em branco para edição
-    caminho: usuario.caminho
+    caminho: usuario.caminho,
+    role: usuario.role || 'admin',
+    endereco: usuario.endereco || {
+      cep: '',
+      rua: '',
+      numero: '',
+      bairro: '',
+      complemento: '',
+      cidade: '',
+      estado: ''
+    }
   };
   
   if (usuario.caminho) {
@@ -568,12 +765,24 @@ const resetForm = () => {
     dtNascimento: '',
     apelido: '',
     senha: '',
-    caminho: null
+    caminho: null,
+    role: 'admin', // Define o valor padrão como 'admin'
+    endereco: {
+      cep: '',
+      rua: '',
+      numero: '',
+      bairro: '',
+      complemento: '',
+      cidade: '',
+      estado: ''
+    }
   };
   
   imagePreview.value = null;
   selectedFileName.value = '';
   selectedFile.value = null;
+  cepError.value = '';
+  autoFilled.value = false;
   
   if (document.getElementById('imagem')) {
     document.getElementById('imagem').value = '';
@@ -595,112 +804,173 @@ const handleFileChange = (event) => {
   reader.readAsDataURL(file);
 };
 
+// Função para buscar dados do CEP
+const fetchAddressData = async () => {
+  cepError.value = '';
+  
+  // Limpa o CEP para conter apenas números
+  const cep = formUsuario.value.endereco.cep.replace(/\D/g, '');
+  if (cep.length !== 8) {
+    return;
+  }
+  
+  cepLoading.value = true;
+  
+  try {
+    // Faz a requisição para a API ViaCEP
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const data = await response.json();
+    
+    if (data.erro) {
+      cepError.value = 'CEP não encontrado';
+      return;
+    }
+    
+    // Preenche os campos do formulário com os dados retornados
+    formUsuario.value.endereco.rua = data.logradouro;
+    formUsuario.value.endereco.bairro = data.bairro;
+    formUsuario.value.endereco.cidade = data.localidade;
+    formUsuario.value.endereco.estado = data.uf;
+    
+    // Marca que os campos foram preenchidos automaticamente
+    autoFilled.value = true;
+    
+    // Foca no campo número após preencher os dados
+    nextTick(() => {
+      document.getElementById('numero').focus();
+    });
+  } catch (error) {
+    console.error('Erro ao buscar CEP:', error);
+    cepError.value = 'Erro ao buscar o CEP. Tente novamente.';
+  } finally {
+    cepLoading.value = false;
+  }
+};
+
 const saveUsuario = async () => {
   if (!checkAuthentication()) return;
+  
+  // Debug - mostrar feedback visual imediato
+  console.log("Botão Salvar clicado");
+  showToast('Processando...', 'info');
+  showModalLoading.value = true;
+  
+  // Validações de formulário
+  if (!formUsuario.value.nome || !formUsuario.value.email || !formUsuario.value.dtNascimento) {
+    showToast('Preencha todos os campos obrigatórios', 'error');
+    showModalLoading.value = false;
+    return;
+  }
+  
+  // Validar senha
+  if (!editingUsuario.value && (!formUsuario.value.senha || formUsuario.value.senha.length < 6)) {
+    passwordError.value = 'A senha deve ter pelo menos 6 caracteres';
+    showToast('A senha deve ter pelo menos 6 caracteres', 'error');
+    showModalLoading.value = false;
+    return;
+  } else {
+    passwordError.value = '';
+  }
+  
+  // Validar endereço
+  if (!formUsuario.value.endereco.cep || !formUsuario.value.endereco.rua || 
+      !formUsuario.value.endereco.numero || !formUsuario.value.endereco.bairro || 
+      !formUsuario.value.endereco.cidade || !formUsuario.value.endereco.estado) {
+    showToast('Preencha todos os campos de endereço', 'error');
+    showModalLoading.value = false;
+    return;
+  }
   
   loading.value = true;
   error.value = null;
   
   try {
-    // For regular data (without file upload)
-    if (!selectedFile.value) {
-      // Use JSON instead of FormData when there's no file
-      const userData = {
-        nome: formUsuario.value.nome,
-        email: formUsuario.value.email,
-        dtNascimento: formUsuario.value.dtNascimento,
-        senha: formUsuario.value.senha
-      };
-      
-      if (formUsuario.value.apelido) {
-        userData.apelido = formUsuario.value.apelido;
-      }
-      
-      let response;
-      
-      if (editingUsuario.value) {
-        // Atualizar usuário existente
-        response = await fetch(`${API_URL}/${editingUsuario.value._id}`, {
-          method: 'PUT',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(userData)
-        });
-      } else {
-        // Criar novo usuário
-        response = await fetch(`${API_URL}/`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify(userData)
-        });
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Não autorizado. Faça login novamente.');
-        }
-        throw new Error('Erro ao salvar usuário');
-      }
-      
-      await response.json();
-      showToast(editingUsuario.value ? 'Usuário atualizado com sucesso!' : 'Usuário adicionado com sucesso!', 'success');
-    } 
-    // For FormData (with file upload)
-    else {
-      const formData = new FormData();
-      formData.append('nome', formUsuario.value.nome);
-      formData.append('email', formUsuario.value.email);
-      formData.append('dtNascimento', formUsuario.value.dtNascimento);
-      
-      if (formUsuario.value.apelido) {
-        formData.append('apelido', formUsuario.value.apelido);
-      }
-      
-      if (formUsuario.value.senha) {
-        formData.append('senha', formUsuario.value.senha);
-      }
-      
-      if (selectedFile.value) {
-        formData.append('imagem', selectedFile.value);
-      }
-      
-      // Log form data to console for debugging
-      console.log("FormData contents:");
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-      }
-      
-      let response;
-      // Não definimos os headers com Content-Type para formData para que o navegador defina o boundary correto
-      const headers = {
-        'Authorization': `Bearer ${getAuthToken()}`
-      };
-      
-      if (editingUsuario.value) {
-        // Atualizar usuário existente
-        response = await fetch(`${API_URL}/${editingUsuario.value._id}`, {
-          method: 'PUT',
-          headers: headers,
-          body: formData
-        });
-      } else {
-        // Criar novo usuário
-        response = await fetch(`${API_URL}/`, {
-          method: 'POST',
-          headers: headers,
-          body: formData
-        });
-      }
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('Não autorizado. Faça login novamente.');
-        }
-        throw new Error('Erro ao salvar usuário');
-      }
-      
-      await response.json();
-      showToast(editingUsuario.value ? 'Usuário atualizado com sucesso!' : 'Usuário adicionado com sucesso!', 'success');
+    // Para envio com FormData (suporta uploads de arquivo)
+    const formData = new FormData();
+    formData.append('nome', formUsuario.value.nome);
+    formData.append('email', formUsuario.value.email);
+    formData.append('dtNascimento', formUsuario.value.dtNascimento);
+    formData.append('role', formUsuario.value.role); // Adiciona a role
+    
+    if (formUsuario.value.apelido) {
+      formData.append('apelido', formUsuario.value.apelido);
     }
+    
+    if (formUsuario.value.senha) {
+      formData.append('senha', formUsuario.value.senha);
+    }
+    
+    // Adiciona cada campo de endereço individualmente
+    const endereco = formUsuario.value.endereco;
+    formData.append('endereco[cep]', endereco.cep);
+    formData.append('endereco[rua]', endereco.rua);
+    formData.append('endereco[numero]', endereco.numero);
+    formData.append('endereco[bairro]', endereco.bairro);
+    formData.append('endereco[cidade]', endereco.cidade);
+    formData.append('endereco[estado]', endereco.estado);
+    if (endereco.complemento) {
+      formData.append('endereco[complemento]', endereco.complemento);
+    }
+    
+    // Tentativa alternativa: como JSON string
+    formData.append('enderecoJson', JSON.stringify(endereco));
+    
+    if (selectedFile.value) {
+      formData.append('imagem', selectedFile.value);
+    }
+    
+    // Log para debug
+    console.log("FormData contents:");
+    for (let pair of formData.entries()) {
+      console.log(pair[0] + ': ' + pair[1]);
+    }
+    
+    let response;
+    // Headers apenas com Authorization para FormData
+    const headers = {
+      'Authorization': `Bearer ${getAuthToken()}`
+    };
+    
+    console.log("Enviando requisição para", editingUsuario.value ? `${API_URL}/${editingUsuario.value._id}` : `${API_URL}/`);
+    
+    if (editingUsuario.value) {
+      // Atualizar usuário existente
+      response = await fetch(`${API_URL}/${editingUsuario.value._id}`, {
+        method: 'PUT',
+        headers: headers,
+        body: formData
+      });
+    } else {
+      // Criar novo usuário
+      response = await fetch(`${API_URL}/`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+      });
+    }
+    
+    console.log("Status da resposta:", response.status);
+    const responseText = await response.text();
+    console.log("Resposta completa:", responseText);
+    
+    // Tentar fazer parse da resposta como JSON
+    let responseData;
+    try {
+      responseData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Erro ao parsear resposta como JSON:", e);
+      responseData = { message: 'Erro no formato da resposta do servidor' };
+    }
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Não autorizado. Faça login novamente.');
+      }
+      
+      throw new Error(responseData.message || 'Erro ao salvar usuário');
+    }
+    
+    showToast(editingUsuario.value ? 'Usuário atualizado com sucesso!' : 'Usuário adicionado com sucesso!', 'success');
     
     // Recarregar a lista de usuários
     await loadUsuarios();
@@ -713,6 +983,7 @@ const saveUsuario = async () => {
     showToast('Erro ao salvar o usuário: ' + err.message, 'error');
   } finally {
     loading.value = false;
+    showModalLoading.value = false;
   }
 };
 
@@ -821,6 +1092,55 @@ const showToast = (message, type = 'success') => {
     }
   }, 5000);
 };
+
+// Função para obter informações de localização formatadas
+const getLocationInfo = (usuario) => {
+  if (!usuario.endereco) return '-';
+  
+  // Se já for um objeto com cidade e estado
+  if (typeof usuario.endereco === 'object') {
+    if (usuario.endereco.cidade && usuario.endereco.estado) {
+      return `${usuario.endereco.cidade}/${usuario.endereco.estado}`;
+    } else if (usuario.endereco.cidade) {
+      return usuario.endereco.cidade;
+    } else if (usuario.endereco.estado) {
+      return usuario.endereco.estado;
+    }
+    return '-';
+  }
+  
+  // Se for uma string, extrair cidade/estado
+  if (typeof usuario.endereco === 'string') {
+    // Expressão regular para capturar o padrão Cidade/Estado
+    // Procura por um texto seguido de / e 2 letras maiúsculas antes de um traço ou fim da string
+    const match = usuario.endereco.match(/([^-/]+)\/([A-Z]{2})(?:\s*-|$)/);
+    
+    if (match) {
+      return `${match[1].trim()}/${match[2]}`;
+    }
+    
+    // Alternativa caso o regex não funcione: 
+    // Pegar a parte entre o segundo e terceiro traço (se existir)
+    const partes = usuario.endereco.split('-');
+    if (partes.length >= 3) {
+      // Pega a terceira parte (índice 2) que deve conter Cidade/Estado
+      const cidadeEstado = partes[2].trim();
+      if (cidadeEstado.includes('/')) {
+        return cidadeEstado.trim();
+      }
+    }
+  }
+  
+  return '-';
+};
+// Verificar alterações na senha para validação
+watch(() => formUsuario.value.senha, (newValue) => {
+  if (newValue && newValue.length > 0 && newValue.length < 6) {
+    passwordError.value = 'A senha deve ter pelo menos 6 caracteres';
+  } else {
+    passwordError.value = '';
+  }
+});
 
 // Carregar usuários ao montar o componente
 onMounted(() => {
@@ -1058,7 +1378,7 @@ watch(activeFilter, () => {
   font-style: italic;
 }
 
-.user-birthdate, .user-age {
+.user-birthdate, .user-age, .user-location {
   color: #aaa;
 }
 
@@ -1254,12 +1574,16 @@ watch(activeFilter, () => {
   font-size: 16px;
 }
 
-.film-genre {
+.film-genre, .film-role {
   color: #fff;
   background-color: rgba(229, 9, 20, 0.7);
   padding: 4px 12px;
   border-radius: 4px;
   font-weight: 500;
+}
+
+.film-role {
+  background-color: rgba(0, 128, 128, 0.7);
 }
 
 .film-body {
@@ -1320,8 +1644,21 @@ watch(activeFilter, () => {
   gap: 20px;
 }
 
+.form-section {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #333;
+}
+
+.section-title {
+  color: #e5e5e5;
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 20px;
+}
+
 .form-group {
-  margin-bottom: 0;
+  margin-bottom: 16px;
 }
 
 .form-group label {
@@ -1373,6 +1710,10 @@ watch(activeFilter, () => {
 
 .form-row .form-group {
   flex: 1;
+}
+
+.form-group.small {
+  flex: 0.3;
 }
 
 .file-input-container {
@@ -1557,13 +1898,22 @@ watch(activeFilter, () => {
   color: #2ecc71;
 }
 
-.toast.error .toast-icon {
-  color: #e74c3c;
+.button-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
 }
 
-.toast-content {
-  flex: 1;
-  font-size: 14px;
+.toast.info {
+  border-color: #3498db;
+}
+
+.toast.info .toast-icon {
+  color: #3498db;
 }
 
 @keyframes slideIn {
@@ -1575,6 +1925,76 @@ watch(activeFilter, () => {
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+/* Novo estilo para seção de endereço */
+.user-address-section {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.user-address-section h3 {
+  font-size: 18px;
+  margin: 0 0 16px;
+  color: #e5e5e5;
+}
+
+.address-details p {
+  margin: 8px 0;
+  color: #aaa;
+}
+
+.address-details strong {
+  color: #e5e5e5;
+}
+
+.cep-input {
+  position: relative;
+}
+
+.loading-spinner {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #e50914;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.form-group input.auto-filled {
+  background-color: #1e3b25;
+  border-left: 3px solid #2ecc71;
+}
+
+.error-message {
+  color: #e50914;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.password-input {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #b3b3b3;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Responsive adjustments */
