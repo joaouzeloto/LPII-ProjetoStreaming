@@ -30,6 +30,13 @@
           >
             Séries
           </button>
+          <button 
+            class="tab-button" 
+            :class="{ active: activeTab === 'lista' }"
+            @click="setActiveTab('lista')"
+          >
+            Minha Lista
+          </button>
         </div>
       </div>
       <div class="search-container">
