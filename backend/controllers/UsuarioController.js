@@ -201,10 +201,10 @@ class UsuarioController {
 
     static async findUsuarioById(req, res) {
         try {
+            console.log(req.params);
             const { id } = req.params;
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                return res.status(400).json({ message: 'ID de usuário inválido' });
-            }
+            console.log('ID recebido:', id);
+            
 
             const usuario = await Usuario.findById(id);
             

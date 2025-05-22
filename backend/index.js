@@ -17,6 +17,7 @@ import userRouter from './routes/usuario.js';
 import seriesRouter from './routes/series.js';
 import loginRouter from './routes/login.js';
 import routerListaUsuario from './routes/listausuario.js';
+import routerAvaliacao from './routes/avaliacao.js'
 import connectBD from './config/db.js'
 
 
@@ -55,6 +56,7 @@ app.use('/usuario', userRouter)
 app.use('/series', seriesRouter)
 app.use('/login', loginRouter)
 app.use('/listausuario', routerListaUsuario)
+app.use("/avaliacao", routerAvaliacao);
 // Inicialização do servidor
 app.listen(port, () => {
   console.log(`Servidor ativo rodando na porta ${port}`)

@@ -283,9 +283,9 @@ const checkAuthentication = () => {
 // Carregar dados do usuário
 const loadUserData = async () => {
   if (!checkAuthentication()) return;
-  
+  const userId = localStorage.getItem('pessoa_id');
   try {
-    const response = await fetch(`${API_URL}/user/profile`, {
+    const response = await fetch(`${API_URL}/usuario/${userId}`, {
       method: 'GET',
       headers: {
         "Authorization": `Bearer ${getAuthToken()}`
@@ -335,7 +335,7 @@ const loadStats = async () => {
     }
     
     // Carregar usuários (simulado, você pode precisar implementar esta API)
-    const usuariosResponse = await fetch(`${API_URL}/users`, {
+    const usuariosResponse = await fetch(`${API_URL}/usuario`, {
       method: 'GET',
       headers: {
         "Authorization": `Bearer ${getAuthToken()}`
@@ -400,7 +400,7 @@ const handleLogout = () => {
   localStorage.removeItem('token');
   showToast('Logout realizado com sucesso!', 'success');
   setTimeout(() => {
-    window.location.href = '/login';
+    window.location.href = '/';
   }, 1500);
 };
 
