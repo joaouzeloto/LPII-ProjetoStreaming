@@ -1,7 +1,4 @@
-.toast-content {
-  flex: 1;
-  font-size: 14px;
-}<template>
+<template>
   <div class="netflix-wrapper">
     <div class="netflix-bg-overlay"></div>
     
@@ -145,7 +142,7 @@
                   <button class="action-button delete" @click="confirmDelete(usuario)" title="Excluir">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2 2h4a2 2 0 0 1 2 2v2"></path>
                     </svg>
                   </button>
                 </div>
@@ -196,22 +193,10 @@
         <div class="film-body">
           <div class="user-address-section" v-if="selectedUsuario.endereco">
             <h3>Endereço</h3>
-             <div class="address-details">
-      <!-- Se o endereço for uma string única -->
-      <div v-if="typeof selectedUsuario.endereco === 'string'">
-        <p>{{ selectedUsuario.endereco }}</p>
-      </div>
-      
-      <!-- Se o endereço for um objeto (para compatibilidade) -->
-      <template v-else>
-        <p><strong>CEP:</strong> {{ selectedUsuario.endereco.cep }}</p>
-        <p><strong>Rua:</strong> {{ selectedUsuario.endereco.rua }}, {{ selectedUsuario.endereco.numero }}</p>
-        <p v-if="selectedUsuario.endereco.complemento"><strong>Complemento:</strong> {{ selectedUsuario.endereco.complemento }}</p>
-        <p><strong>Bairro:</strong> {{ selectedUsuario.endereco.bairro }}</p>
-        <p><strong>Cidade:</strong> {{ selectedUsuario.endereco.cidade }} - {{ selectedUsuario.endereco.estado }}</p>
-      </template>
-    </div>
-  </div>
+            <div class="address-details">
+              <p>{{ selectedUsuario.endereco }}</p>
+            </div>
+          </div>
           
           <div class="film-actions">
             <button class="action-btn edit" @click="editUsuario(selectedUsuario)">
@@ -560,7 +545,7 @@ const formUsuario = ref({
   apelido: '',
   senha: '',
   caminho: null,
-  role: 'admin', // Definindo 'admin' como valor padrão
+  role: 'admin',
   endereco: {
     cep: '',
     rua: '',
@@ -583,6 +568,111 @@ const cepLoading = ref(false);
 const cepError = ref('');
 const autoFilled = ref(false);
 const passwordError = ref('');
+
+// Função para fazer parse da string de endereço
+const parseEnderecoString = (enderecoString) => {
+  if (!enderecoString || typeof enderecoString !== 'string') {
+    return {
+      cep: '',
+      rua: '',
+      numero: '',
+      bairro: '',
+      complemento: '',
+      cidade: '',
+      estado: ''
+    };
+  }
+
+  console.log('Parsing endereço:', enderecoString);
+
+  const endereco = {
+    cep: '',
+    rua: '',
+    numero: '',
+    bairro: '',
+    complemento: '',
+    cidade: '',
+    estado: ''
+  };
+
+  // Extrair CEP (sempre no final)
+  const cepMatch = enderecoString.match(/CEP:\s*(\d{5}-?\d{3})/i);
+  if (cepMatch) {
+    endereco.cep = cepMatch[1];
+  }
+
+  // Extrair cidade/estado (formato Cidade/Estado)
+  const cidadeEstadoMatch = enderecoString.match(/([^-/]+)\/([A-Z]{2})/);
+  if (cidadeEstadoMatch) {
+    endereco.cidade = cidadeEstadoMatch[1].trim();
+    endereco.estado = cidadeEstadoMatch[2];
+  }
+
+  // Dividir o resto por traços para extrair rua, número, complemento, bairro
+  const partes = enderecoString.split(' - ');
+  
+  if (partes.length >= 1) {
+    // Primeira parte: Rua, número e possivelmente complemento
+    const ruaNumero = partes[0];
+    const ruaNumeroMatch = ruaNumero.match(/^(.+?),\s*(\d+)(?:,\s*(.+))?/);
+    
+    if (ruaNumeroMatch) {
+      endereco.rua = ruaNumeroMatch[1].trim();
+      endereco.numero = ruaNumeroMatch[2];
+      if (ruaNumeroMatch[3]) {
+        endereco.complemento = ruaNumeroMatch[3].trim();
+      }
+    } else {
+      endereco.rua = ruaNumero;
+    }
+  }
+
+  if (partes.length >= 2) {
+    // Segunda parte: Bairro
+    const bairro = partes[1].trim();
+    if (!bairro.includes('/') && !bairro.includes('CEP')) {
+      endereco.bairro = bairro;
+    }
+  }
+
+  console.log('Endereço parseado:', endereco);
+  return endereco;
+};
+
+// Função para converter o objeto endereço de volta para string
+const formatEnderecoString = (endereco) => {
+  if (!endereco) return '';
+  
+  let enderecoFormatado = '';
+  
+  // Rua, número, complemento
+  if (endereco.rua) {
+    enderecoFormatado += endereco.rua;
+    if (endereco.numero) {
+      enderecoFormatado += `, ${endereco.numero}`;
+      if (endereco.complemento) {
+        enderecoFormatado += `, ${endereco.complemento}`;
+      }
+    }
+  }
+  
+  // Bairro
+  if (endereco.bairro) {
+    enderecoFormatado += ` - ${endereco.bairro}`;
+  }
+  
+  // Cidade/Estado
+  if (endereco.cidade && endereco.estado) {
+    enderecoFormatado += ` - ${endereco.cidade}/${endereco.estado}`;
+  }
+  
+  // CEP
+  if (endereco.cep) {
+    enderecoFormatado += ` - CEP: ${endereco.cep}`;
+  }
+  
+  return enderecoFormatado;
+};
 
 // Função auxiliar para obter o token de autenticação
 const getAuthToken = () => {
@@ -607,10 +697,7 @@ const getAuthHeaders = (contentType = 'application/json') => {
 const checkAuthentication = () => {
   const token = getAuthToken();
   if (!token) {
-    // Redirecionar para a página de login ou mostrar mensagem
     showToast('Usuário não autenticado. Faça login para continuar.', 'error');
-    // Você pode adicionar um redirecionamento aqui se necessário
-    // window.location.href = '/login';
     return false;
   }
   return true;
@@ -654,7 +741,6 @@ const handleSearch = async () => {
   
   try {
     if (activeFilter.value === 'email') {
-      // Busca por email
       const endpoint = `${API_URL}/email/${searchQuery.value}`;
       const response = await fetch(endpoint, {
         method: 'GET',
@@ -671,7 +757,6 @@ const handleSearch = async () => {
       const usuario = await response.json();
       usuarios.value = [usuario];
     } else {
-      // Busca por todos ou por nome (filtragem no cliente)
       const response = await fetch(`${API_URL}/`, {
         method: 'GET',
         headers: getAuthHeaders()
@@ -687,12 +772,10 @@ const handleSearch = async () => {
       const allUsuarios = await response.json();
       
       if (activeFilter.value === 'name') {
-        // Filtrar por nome no lado do cliente
         usuarios.value = allUsuarios.filter(usuario => 
           usuario.nome.toLowerCase().includes(searchQuery.value.toLowerCase())
         );
       } else {
-        // Filtrar em todos os campos
         usuarios.value = allUsuarios.filter(usuario => 
           usuario.nome.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
           usuario.email.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -733,6 +816,9 @@ const editUsuario = (usuario) => {
   selectedUsuario.value = null;
   editingUsuario.value = usuario;
   
+  // Parse do endereço da string para objeto
+  const enderecoParseado = parseEnderecoString(usuario.endereco);
+  
   // Preencher o formulário com os dados do usuário
   formUsuario.value = {
     nome: usuario.nome,
@@ -742,15 +828,7 @@ const editUsuario = (usuario) => {
     senha: '', // Deixamos a senha em branco para edição
     caminho: usuario.caminho,
     role: usuario.role || 'admin',
-    endereco: usuario.endereco || {
-      cep: '',
-      rua: '',
-      numero: '',
-      bairro: '',
-      complemento: '',
-      cidade: '',
-      estado: ''
-    }
+    endereco: enderecoParseado
   };
   
   if (usuario.caminho) {
@@ -766,7 +844,7 @@ const resetForm = () => {
     apelido: '',
     senha: '',
     caminho: null,
-    role: 'admin', // Define o valor padrão como 'admin'
+    role: 'admin',
     endereco: {
       cep: '',
       rua: '',
@@ -808,7 +886,6 @@ const handleFileChange = (event) => {
 const fetchAddressData = async () => {
   cepError.value = '';
   
-  // Limpa o CEP para conter apenas números
   const cep = formUsuario.value.endereco.cep.replace(/\D/g, '');
   if (cep.length !== 8) {
     return;
@@ -817,7 +894,6 @@ const fetchAddressData = async () => {
   cepLoading.value = true;
   
   try {
-    // Faz a requisição para a API ViaCEP
     const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
     const data = await response.json();
     
@@ -826,16 +902,13 @@ const fetchAddressData = async () => {
       return;
     }
     
-    // Preenche os campos do formulário com os dados retornados
     formUsuario.value.endereco.rua = data.logradouro;
     formUsuario.value.endereco.bairro = data.bairro;
     formUsuario.value.endereco.cidade = data.localidade;
     formUsuario.value.endereco.estado = data.uf;
     
-    // Marca que os campos foram preenchidos automaticamente
     autoFilled.value = true;
     
-    // Foca no campo número após preencher os dados
     nextTick(() => {
       document.getElementById('numero').focus();
     });
@@ -850,19 +923,17 @@ const fetchAddressData = async () => {
 const saveUsuario = async () => {
   if (!checkAuthentication()) return;
   
-  // Debug - mostrar feedback visual imediato
-  console.log("Botão Salvar clicado");
+  console.log("Iniciando saveUsuario");
   showToast('Processando...', 'info');
   showModalLoading.value = true;
   
-  // Validações de formulário
+  // Validações
   if (!formUsuario.value.nome || !formUsuario.value.email || !formUsuario.value.dtNascimento) {
     showToast('Preencha todos os campos obrigatórios', 'error');
     showModalLoading.value = false;
     return;
   }
   
-  // Validar senha
   if (!editingUsuario.value && (!formUsuario.value.senha || formUsuario.value.senha.length < 6)) {
     passwordError.value = 'A senha deve ter pelo menos 6 caracteres';
     showToast('A senha deve ter pelo menos 6 caracteres', 'error');
@@ -872,7 +943,6 @@ const saveUsuario = async () => {
     passwordError.value = '';
   }
   
-  // Validar endereço
   if (!formUsuario.value.endereco.cep || !formUsuario.value.endereco.rua || 
       !formUsuario.value.endereco.numero || !formUsuario.value.endereco.bairro || 
       !formUsuario.value.endereco.cidade || !formUsuario.value.endereco.estado) {
@@ -885,12 +955,11 @@ const saveUsuario = async () => {
   error.value = null;
   
   try {
-    // Para envio com FormData (suporta uploads de arquivo)
     const formData = new FormData();
     formData.append('nome', formUsuario.value.nome);
     formData.append('email', formUsuario.value.email);
     formData.append('dtNascimento', formUsuario.value.dtNascimento);
-    formData.append('role', formUsuario.value.role); // Adiciona a role
+    formData.append('role', formUsuario.value.role);
     
     if (formUsuario.value.apelido) {
       formData.append('apelido', formUsuario.value.apelido);
@@ -900,48 +969,28 @@ const saveUsuario = async () => {
       formData.append('senha', formUsuario.value.senha);
     }
     
-    // Adiciona cada campo de endereço individualmente
-    const endereco = formUsuario.value.endereco;
-    formData.append('endereco[cep]', endereco.cep);
-    formData.append('endereco[rua]', endereco.rua);
-    formData.append('endereco[numero]', endereco.numero);
-    formData.append('endereco[bairro]', endereco.bairro);
-    formData.append('endereco[cidade]', endereco.cidade);
-    formData.append('endereco[estado]', endereco.estado);
-    if (endereco.complemento) {
-      formData.append('endereco[complemento]', endereco.complemento);
-    }
-    
-    // Tentativa alternativa: como JSON string
-    formData.append('enderecoJson', JSON.stringify(endereco));
+    // Converter o objeto endereço para string formatada
+    const enderecoFormatado = formatEnderecoString(formUsuario.value.endereco);
+    formData.append('endereco', enderecoFormatado);
     
     if (selectedFile.value) {
       formData.append('imagem', selectedFile.value);
     }
     
-    // Log para debug
-    console.log("FormData contents:");
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ': ' + pair[1]);
-    }
+    console.log("Endereço formatado:", enderecoFormatado);
     
     let response;
-    // Headers apenas com Authorization para FormData
     const headers = {
       'Authorization': `Bearer ${getAuthToken()}`
     };
     
-    console.log("Enviando requisição para", editingUsuario.value ? `${API_URL}/${editingUsuario.value._id}` : `${API_URL}/`);
-    
     if (editingUsuario.value) {
-      // Atualizar usuário existente
       response = await fetch(`${API_URL}/${editingUsuario.value._id}`, {
         method: 'PUT',
         headers: headers,
         body: formData
       });
     } else {
-      // Criar novo usuário
       response = await fetch(`${API_URL}/`, {
         method: 'POST',
         headers: headers,
@@ -953,7 +1002,6 @@ const saveUsuario = async () => {
     const responseText = await response.text();
     console.log("Resposta completa:", responseText);
     
-    // Tentar fazer parse da resposta como JSON
     let responseData;
     try {
       responseData = JSON.parse(responseText);
@@ -966,16 +1014,12 @@ const saveUsuario = async () => {
       if (response.status === 401) {
         throw new Error('Não autorizado. Faça login novamente.');
       }
-      
       throw new Error(responseData.message || 'Erro ao salvar usuário');
     }
     
     showToast(editingUsuario.value ? 'Usuário atualizado com sucesso!' : 'Usuário adicionado com sucesso!', 'success');
     
-    // Recarregar a lista de usuários
     await loadUsuarios();
-    
-    // Fechar o modal
     closeModal();
   } catch (err) {
     console.error('Erro ao salvar usuário:', err);
@@ -1021,12 +1065,10 @@ const deleteUsuarioConfirmed = async () => {
     
     await response.json();
     
-    // Remover o usuário da lista local
     usuarios.value = usuarios.value.filter(u => u._id !== deleteUsuario.value._id);
     
     showToast('Usuário excluído com sucesso!', 'success');
     
-    // Fechar o modal de confirmação
     showDeleteConfirm.value = false;
     deleteUsuario.value = null;
   } catch (err) {
@@ -1071,12 +1113,10 @@ const formatDateForInput = (dateString) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
   
-  // Verificar se a imagem já é uma URL completa
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
   
-  // Caso contrário, construir a URL com base no caminho da API
   return `../uploads/${imagePath}`;
 };
 
@@ -1084,7 +1124,6 @@ const showToast = (message, type = 'success') => {
   const toast = { message, type };
   toasts.value.push(toast);
   
-  // Remover o toast após 5 segundos
   setTimeout(() => {
     const index = toasts.value.indexOf(toast);
     if (index !== -1) {
@@ -1097,33 +1136,14 @@ const showToast = (message, type = 'success') => {
 const getLocationInfo = (usuario) => {
   if (!usuario.endereco) return '-';
   
-  // Se já for um objeto com cidade e estado
-  if (typeof usuario.endereco === 'object') {
-    if (usuario.endereco.cidade && usuario.endereco.estado) {
-      return `${usuario.endereco.cidade}/${usuario.endereco.estado}`;
-    } else if (usuario.endereco.cidade) {
-      return usuario.endereco.cidade;
-    } else if (usuario.endereco.estado) {
-      return usuario.endereco.estado;
-    }
-    return '-';
-  }
-  
-  // Se for uma string, extrair cidade/estado
   if (typeof usuario.endereco === 'string') {
-    // Expressão regular para capturar o padrão Cidade/Estado
-    // Procura por um texto seguido de / e 2 letras maiúsculas antes de um traço ou fim da string
     const match = usuario.endereco.match(/([^-/]+)\/([A-Z]{2})(?:\s*-|$)/);
-    
     if (match) {
       return `${match[1].trim()}/${match[2]}`;
     }
     
-    // Alternativa caso o regex não funcione: 
-    // Pegar a parte entre o segundo e terceiro traço (se existir)
     const partes = usuario.endereco.split('-');
     if (partes.length >= 3) {
-      // Pega a terceira parte (índice 2) que deve conter Cidade/Estado
       const cidadeEstado = partes[2].trim();
       if (cidadeEstado.includes('/')) {
         return cidadeEstado.trim();
@@ -1133,6 +1153,7 @@ const getLocationInfo = (usuario) => {
   
   return '-';
 };
+
 // Verificar alterações na senha para validação
 watch(() => formUsuario.value.senha, (newValue) => {
   if (newValue && newValue.length > 0 && newValue.length < 6) {
@@ -1158,6 +1179,11 @@ watch(activeFilter, () => {
 </script>
 
 <style scoped>
+.toast-content {
+  flex: 1;
+  font-size: 14px;
+}
+
 .netflix-wrapper {
   min-height: 100vh;
   background-color: #141414;
@@ -1944,6 +1970,7 @@ watch(activeFilter, () => {
 .address-details p {
   margin: 8px 0;
   color: #aaa;
+  line-height: 1.5;
 }
 
 .address-details strong {

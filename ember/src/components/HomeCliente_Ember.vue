@@ -35,7 +35,8 @@
             :class="{ active: activeTab === 'lista' }"
             @click="setActiveTab('lista')"
           >
-            Minha Lista
+            <span>Minha Lista</span>
+            <span v-if="minhaListaCount > 0" class="list-count">{{ minhaListaCount }}</span>
           </button>
         </div>
       </div>
@@ -74,12 +75,29 @@
             <span class="featured-genre">{{ featuredItem.genero }}</span>
           </div>
           <p class="featured-synopsis">{{ featuredItem.sinopse }}</p>
-          <button class="play-button" @click="showDetails(featuredItem)">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3"></polygon>
-            </svg>
-            Ver detalhes
-          </button>
+          <div class="featured-actions">
+            <button class="play-button smooth-btn" @click="showDetails(featuredItem)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Ver detalhes
+            </button>
+            <button 
+              class="add-button-featured smooth-btn"
+              :class="{ 'in-list': isInMinhaLista(featuredItem), 'loading': isItemLoading(featuredItem._id) }"
+              @click="toggleMinhaLista(featuredItem)"
+              :disabled="isItemLoading(featuredItem._id)"
+            >
+              <div class="btn-content">
+                <svg v-if="!isItemLoading(featuredItem._id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line v-if="!isInMinhaLista(featuredItem)" x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <div v-else class="btn-spinner"></div>
+                <span>{{ getListButtonText(featuredItem) }}</span>
+              </div>
+            </button>
+          </div>
         </div>
       </section>
       
@@ -90,7 +108,7 @@
           <button 
             v-for="genre in genres" 
             :key="genre" 
-            class="genre-button"
+            class="genre-button smooth-btn"
             @click="filterByGenre(genre)"
           >
             {{ genre }}
@@ -104,6 +122,20 @@
         <p>Carregando conteúdo...</p>
       </div>
       
+      <!-- Loading Minha Lista -->
+      <div v-else-if="loadingMinhaLista && activeTab === 'lista'" class="loading-container">
+        <div class="skeleton-grid">
+          <div v-for="n in 8" :key="n" class="skeleton-card">
+            <div class="skeleton-poster"></div>
+            <div class="skeleton-info">
+              <div class="skeleton-title"></div>
+              <div class="skeleton-meta"></div>
+              <div class="skeleton-genre"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <!-- Error State -->
       <div v-else-if="error" class="error-container">
         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -113,7 +145,7 @@
         </svg>
         <h2>Ocorreu um erro</h2>
         <p>{{ error }}</p>
-        <button class="retry-button" @click="loadContent">Tentar novamente</button>
+        <button class="retry-button smooth-btn" @click="loadContent">Tentar novamente</button>
       </div>
       
       <!-- Empty State -->
@@ -122,23 +154,59 @@
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="8" y1="12" x2="16" y2="12"></line>
         </svg>
-        <h2>Nenhum conteúdo encontrado</h2>
-        <p v-if="searchQuery">Nenhum resultado para "{{ searchQuery }}"</p>
-        <p v-else-if="activeGenre">Nenhum conteúdo do gênero "{{ activeGenre }}"</p>
-        <p v-else>Não há {{ getTabLabel() }} disponíveis no momento</p>
+        <h2>{{ getEmptyStateTitle() }}</h2>
+        <p>{{ getEmptyStateMessage() }}</p>
+        <button v-if="activeTab === 'lista'" class="browse-button smooth-btn" @click="setActiveTab('todos')">
+          Navegar Catálogo
+        </button>
       </div>
       
       <!-- Main Content Grid -->
       <section v-else class="content-section">
-        <h2 v-if="searchQuery" class="section-title">Resultados de pesquisa para "{{ searchQuery }}"</h2>
-        <h2 v-else-if="activeGenre" class="section-title">{{ activeGenre }}</h2>
-        <h2 v-else class="section-title">{{ getSectionTitle() }}</h2>
+        <div class="section-header">
+          <div class="title-section">
+            <h2 class="section-title">{{ getSectionTitle() }}</h2>
+            <small v-if="activeTab === 'lista' && lastUpdateText" class="last-update">
+              {{ lastUpdateText }}
+            </small>
+          </div>
+          <div class="header-actions">
+            <button 
+              v-if="activeTab === 'lista' && !loadingMinhaLista" 
+              class="refresh-button smooth-btn"
+              @click="refreshMinhaLista"
+              :disabled="refreshing"
+            >
+              <svg :class="{ spinning: refreshing }" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 4 23 10 17 10"></polyline>
+                <polyline points="1 20 1 14 7 14"></polyline>
+                <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+              </svg>
+              Atualizar Lista
+            </button>
+            <button 
+              v-if="activeTab === 'lista'" 
+              class="force-refresh-button smooth-btn"
+              @click="forceFullRefresh"
+              :disabled="loading || loadingMinhaLista"
+              title="Recarregar todos os dados"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                <path d="M21 21v-5h-5"/>
+              </svg>
+              Sincronizar
+            </button>
+          </div>
+        </div>
         
         <div class="content-grid">
           <div 
             v-for="item in filteredContent" 
             :key="item._id" 
-            class="content-card"
+            class="content-card smooth-card"
             @click="showDetails(item)"
           >
             <div class="content-poster">
@@ -146,6 +214,8 @@
                 v-if="item.caminho" 
                 :src="getImageUrl(item.caminho)" 
                 :alt="item.nome"
+                @load="onImageLoad"
+                @error="onImageError"
               />
               <div v-else class="content-poster-placeholder">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -162,6 +232,26 @@
               <div class="content-badge" v-if="item.type">
                 {{ item.type === 'filme' ? 'Filme' : 'Série' }}
               </div>
+              <!-- Indicador de item na lista -->
+              <div v-if="isInMinhaLista(item)" class="list-indicator">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+              </div>
+              <!-- Quick action button -->
+              <button 
+                v-if="activeTab !== 'lista'"
+                class="quick-add-btn smooth-btn"
+                :class="{ 'in-list': isInMinhaLista(item), 'loading': isItemLoading(item._id) }"
+                @click.stop="toggleMinhaLista(item)"
+                :disabled="isItemLoading(item._id)"
+              >
+                <svg v-if="!isItemLoading(item._id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line v-if="!isInMinhaLista(item)" x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <div v-else class="btn-spinner-small"></div>
+              </button>
             </div>
             <div class="content-info">
               <h3 class="content-title">{{ item.nome }}</h3>
@@ -180,7 +270,7 @@
     <!-- Details Modal -->
     <div v-if="selectedItem" class="modal-overlay" @click="closeDetails">
       <div class="modal-content details-modal" @click.stop>
-        <button class="modal-close" @click="closeDetails">
+        <button class="modal-close smooth-btn" @click="closeDetails">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -229,28 +319,53 @@
           <p class="details-synopsis">{{ selectedItem.sinopse }}</p>
           
           <div class="details-actions">
-            <button class="play-button">
+            <button class="play-button smooth-btn">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
               Assistir agora
             </button>
-            <button class="add-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-              </svg>
-              Minha Lista
+            <button 
+              class="add-button smooth-btn"
+              :class="{ 'in-list': isInMinhaLista(selectedItem), 'loading': isItemLoading(selectedItem._id) }"
+              @click="toggleMinhaLista(selectedItem)"
+              :disabled="isItemLoading(selectedItem._id)"
+            >
+              <div class="btn-content">
+                <svg v-if="!isItemLoading(selectedItem._id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line v-if="!isInMinhaLista(selectedItem)" x1="12" y1="5" x2="12" y2="19"></line>
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                <div v-else class="btn-spinner"></div>
+                <span>{{ getListButtonText(selectedItem) }}</span>
+              </div>
             </button>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Toast para feedback -->
+    <transition name="toast">
+      <div v-if="toast.show" class="toast" :class="toast.type">
+        <div class="toast-content">
+          <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          <span>{{ toast.message }}</span>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 
 // API base URL
 const API_URL = 'http://localhost:3000';
@@ -258,27 +373,416 @@ const API_URL = 'http://localhost:3000';
 // Estado reativo
 const filmes = ref([]);
 const series = ref([]);
+const minhaLista = ref({ filmes: [], series: [] });
 const loading = ref(true);
+const loadingMinhaLista = ref(false);
+const refreshing = ref(false);
+const loadingItems = ref(new Set()); // Track individual item loading states
 const error = ref(null);
 const searchQuery = ref('');
 const activeTab = ref('todos');
 const activeGenre = ref('');
 const selectedItem = ref(null);
 const featuredItem = ref(null);
+const userId = ref(null);
+const toast = ref({ show: false, message: '', type: 'success' });
+const minhaListaCache = ref({ data: null, timestamp: null });
+const CACHE_DURATION = 1 * 60 * 1000; // Reduzido para 1 minuto
+const autoRefreshInterval = ref(null);
+
+// Debounce timer
+let debounceTimer = null;
+
+// Auto-refresh da lista a cada 2 minutos quando estiver na aba "lista"
+const startAutoRefresh = () => {
+  // Limpar intervalo anterior se existir
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value);
+  }
+  
+  autoRefreshInterval.value = setInterval(() => {
+    if (activeTab.value === 'lista' && !loadingMinhaLista.value && !refreshing.value) {
+      console.log('🔄 Auto-refresh da lista...');
+      loadMinhaLista(true);
+    }
+  }, 120000); // 2 minutos
+};
+
+// Parar auto-refresh
+const stopAutoRefresh = () => {
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value);
+    autoRefreshInterval.value = null;
+  }
+};
+
+// Update timestamp display
+const updateTimeDisplay = ref(Date.now());
+setInterval(() => {
+  updateTimeDisplay.value = Date.now();
+}, 60000); // Update every minute
+
+// Função para forçar atualização completa (última alternativa)
+const forceFullRefresh = () => {
+  console.log('🔄 Forçando atualização completa...');
+  
+  // Limpar todos os caches
+  minhaListaCache.value = { data: null, timestamp: null };
+  
+  // Recarregar tudo
+  loadContent();
+  
+  showToast('Dados atualizados', 'success');
+};
 
 // Função auxiliar para obter o token de autenticação
 const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
+// Função para obter o userId do token ou localStorage
+const getUserId = () => {
+  try {
+    const token = getAuthToken();
+    if (token) {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const id = payload.id || payload.userId || payload.user?._id;
+      
+      // Verificar se o ID é válido
+      if (id && typeof id === 'string' && id !== 'undefined' && id !== 'null' && id.length === 24) {
+        return id;
+      }
+    }
+    
+    // Alternativa: buscar userId do localStorage
+    const localUserId = localStorage.getItem('userId');
+    if (localUserId && localUserId !== 'undefined' && localUserId !== 'null' && localUserId.length === 24) {
+      return localUserId;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Erro ao obter userId:', error);
+    return null;
+  }
+};
+
 // Verificar se o token existe
 const checkAuthentication = () => {
   const token = getAuthToken();
-  if (!token) {
+  const userIdValue = getUserId();
+  
+  console.log('🔐 Verificando autenticação:', {
+    temToken: !!token,
+    userId: userIdValue,
+    tipoUserId: typeof userIdValue
+  });
+  
+  if (!token || !userIdValue) {
     error.value = 'Usuário não autenticado. Faça login para continuar.';
     return false;
   }
+  
+  if (!isValidId(userIdValue)) {
+    error.value = 'ID de usuário inválido. Faça login novamente.';
+    return false;
+  }
+  
+  userId.value = userIdValue;
   return true;
+};
+
+// Verificar se item específico está carregando
+const isItemLoading = (itemId) => {
+  return loadingItems.value.has(itemId);
+};
+
+// Mostrar toast com animação
+const showToast = (message, type = 'success') => {
+  toast.value = { show: true, message, type };
+  setTimeout(() => {
+    toast.value.show = false;
+  }, 3500);
+};
+
+// Verificar se cache é válido
+const isCacheValid = () => {
+  if (!minhaListaCache.value.timestamp) return false;
+  return Date.now() - minhaListaCache.value.timestamp < CACHE_DURATION;
+};
+
+// Carregar minha lista com cache inteligente
+const loadMinhaLista = async (forceRefresh = false) => {
+  if (!userId.value) {
+    console.warn('⚠️ Tentativa de carregar lista sem userId');
+    return;
+  }
+
+  if (!isValidId(userId.value)) {
+    console.error('❌ UserId inválido:', userId.value);
+    showToast('Erro: ID de usuário inválido', 'error');
+    return;
+  }
+  
+  // Usar cache se válido e não forçar refresh
+  if (!forceRefresh && isCacheValid() && minhaListaCache.value.data) {
+    console.log('📦 Usando cache para minha lista');
+    minhaLista.value = minhaListaCache.value.data;
+    return;
+  }
+  
+  if (forceRefresh) {
+    refreshing.value = true;
+    console.log('🔄 Forçando refresh da lista...');
+  } else {
+    loadingMinhaLista.value = true;
+    console.log('📥 Carregando minha lista...');
+  }
+  
+  try {
+    console.log(`📡 GET ${API_URL}/listausuario/${userId.value}`);
+    
+    const response = await fetch(`${API_URL}/listausuario/${userId.value}`, {
+      method: 'GET',
+      headers: {
+        "Authorization": `Bearer ${getAuthToken()}`
+      }
+    });
+    
+    console.log(`📡 Resposta: ${response.status} ${response.statusText}`);
+    
+    if (response.ok) {
+      const lista = await response.json();
+      const listaData = {
+        filmes: lista.filmes || [],
+        series: lista.series || []
+      };
+      
+      console.log('✅ Lista carregada:', {
+        filmes: listaData.filmes.length,
+        series: listaData.series.length,
+        total: listaData.filmes.length + listaData.series.length
+      });
+      
+      minhaLista.value = listaData;
+      minhaListaCache.value = {
+        data: listaData,
+        timestamp: Date.now()
+      };
+    } else if (response.status === 404) {
+      console.log('📝 Lista não existe, criando nova...');
+      await criarLista();
+    } else {
+      const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+      throw new Error(errorData.message || 'Erro ao carregar lista');
+    }
+  } catch (err) {
+    console.error('❌ Erro ao carregar minha lista:', err);
+    if (forceRefresh) {
+      showToast('Erro ao atualizar lista', 'error');
+    }
+  } finally {
+    loadingMinhaLista.value = false;
+    refreshing.value = false;
+  }
+};
+
+// Refresh manual da lista
+const refreshMinhaLista = () => {
+  loadMinhaLista(true);
+};
+
+// Criar lista do usuário
+const criarLista = async () => {
+  if (!userId.value) {
+    console.error('❌ Tentativa de criar lista sem userId');
+    return;
+  }
+
+  if (!isValidId(userId.value)) {
+    console.error('❌ UserId inválido para criar lista:', userId.value);
+    return;
+  }
+  
+  try {
+    console.log('📝 Criando nova lista para usuário:', userId.value);
+    
+    const response = await fetch(`${API_URL}/listausuario/criar`, {
+      method: 'POST',
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify({ userId: userId.value })
+    });
+    
+    console.log(`📡 Resposta criação: ${response.status} ${response.statusText}`);
+    
+    if (response.ok) {
+      const lista = await response.json();
+      const listaData = {
+        filmes: lista.filmes || [],
+        series: lista.series || []
+      };
+      
+      console.log('✅ Lista criada com sucesso');
+      
+      minhaLista.value = listaData;
+      minhaListaCache.value = {
+        data: listaData,
+        timestamp: Date.now()
+      };
+    } else {
+      const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+      throw new Error(errorData.message || 'Erro ao criar lista');
+    }
+  } catch (err) {
+    console.error('❌ Erro ao criar lista:', err);
+    showToast('Erro ao criar lista', 'error');
+  }
+};
+
+// Verificar se um item está na minha lista
+const isInMinhaLista = (item) => {
+  if (!item || !minhaLista.value) return false;
+  
+  if (item.type === 'filme') {
+    return minhaLista.value.filmes.some(filme => filme._id === item._id);
+  } else {
+    return minhaLista.value.series.some(serie => serie._id === item._id);
+  }
+};
+
+// Count de itens na lista
+const minhaListaCount = computed(() => {
+  return (minhaLista.value.filmes?.length || 0) + (minhaLista.value.series?.length || 0);
+});
+
+// Helper para mostrar tempo da última atualização
+const lastUpdateText = computed(() => {
+  if (!minhaListaCache.value.timestamp) return '';
+  
+  const now = Date.now();
+  const diff = now - minhaListaCache.value.timestamp;
+  
+  if (diff < 60000) return 'Atualizado agora';
+  if (diff < 3600000) return `Atualizado há ${Math.floor(diff / 60000)}min`;
+  return `Atualizado há ${Math.floor(diff / 3600000)}h`;
+});
+
+// Validar se um ID é válido
+const isValidId = (id) => {
+  return id && 
+         id !== 'undefined' && 
+         id !== 'null' && 
+         id !== undefined && 
+         id !== null && 
+         typeof id === 'string' && 
+         id.length === 24 && 
+         /^[0-9a-fA-F]{24}$/.test(id);
+};
+
+// ⭐ FUNÇÃO PRINCIPAL MODIFICADA - Adicionar/Remover item da minha lista com RELOAD
+const toggleMinhaLista = async (item) => {
+  if (!userId.value || isItemLoading(item._id)) return;
+  
+  // Validações extras
+  if (!item || !item._id) {
+    console.error('Item inválido:', item);
+    showToast('Erro: Item inválido', 'error');
+    return;
+  }
+
+  if (!isValidId(item._id)) {
+    console.error('ID do item inválido:', item._id);
+    showToast('Erro: ID do item inválido', 'error');
+    return;
+  }
+
+  if (!isValidId(userId.value)) {
+    console.error('ID do usuário inválido:', userId.value);
+    showToast('Erro: Usuário não autenticado', 'error');
+    return;
+  }
+
+  if (!item.type || (item.type !== 'filme' && item.type !== 'serie')) {
+    console.error('Tipo de item inválido:', item.type);
+    showToast('Erro: Tipo de item inválido', 'error');
+    return;
+  }
+  
+  // Clear previous debounce
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+  
+  // Add debounce
+  debounceTimer = setTimeout(async () => {
+    loadingItems.value.add(item._id);
+    const isCurrentlyInList = isInMinhaLista(item);
+    const action = isCurrentlyInList ? 'DELETE' : 'POST';
+    const actionText = isCurrentlyInList ? 'remover' : 'adicionar';
+    
+    console.log(`🎬 ${actionText.toUpperCase()} ${item.type.toUpperCase()}:`, {
+      itemId: item._id,
+      userId: userId.value,
+      nome: item.nome,
+      tipo: item.type,
+      acao: action
+    });
+    
+    try {
+      const endpoint = item.type === 'filme' 
+        ? `/listausuario/filme/${item._id}`
+        : `/listausuario/serie/${item._id}`;
+      
+      console.log(`📡 Fazendo requisição: ${action} ${API_URL}${endpoint}`);
+      
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: action,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${getAuthToken()}`
+        },
+        body: JSON.stringify({ userId: userId.value })
+      });
+      
+      console.log(`📡 Resposta: ${response.status} ${response.statusText}`);
+      
+      if (response.ok) {
+        console.log(`✅ Operação ${actionText} realizada com sucesso!`);
+        
+        // Mostrar feedback de sucesso
+        const successMessage = isCurrentlyInList 
+          ? `"${item.nome}" removido da sua lista`
+          : `"${item.nome}" adicionado à sua lista`;
+        showToast(successMessage, 'success');
+        
+        // 🔄 RELOAD DA PÁGINA após operação bem-sucedida
+        setTimeout(() => {
+          console.log('🔄 Recarregando página...');
+          window.location.reload();
+        }, 1500); // Pequeno delay para mostrar o toast
+        
+      } else {
+        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+        console.error(`❌ Erro na resposta:`, errorData);
+        showToast(`Erro: ${errorData.message}`, 'error');
+        throw new Error(errorData.message || `Erro ao ${actionText} item`);
+      }
+    } catch (err) {
+      console.error(`❌ Erro ao ${actionText} item:`, err);
+      showToast(`Erro ao ${actionText} "${item.nome}": ${err.message}`, 'error');
+    } finally {
+      loadingItems.value.delete(item._id);
+    }
+  }, 200);
+};
+
+// Get button text helper
+const getListButtonText = (item) => {
+  if (isItemLoading(item._id)) return 'Processando...';
+  return isInMinhaLista(item) ? 'Remover da Lista' : 'Adicionar à Lista';
 };
 
 // Carregar conteúdo (filmes e séries)
@@ -289,54 +793,42 @@ const loadContent = async () => {
   error.value = null;
   
   try {
-    // Carregar filmes
-    const filmesResponse = await fetch(`${API_URL}/filmes`, {
-      method: 'GET',
-      headers: {
-        "Authorization": `Bearer ${getAuthToken()}`
-      }
-    });
+    // Carregar filmes e séries em paralelo
+    const [filmesResponse, seriesResponse] = await Promise.all([
+      fetch(`${API_URL}/filmes`, {
+        method: 'GET',
+        headers: { "Authorization": `Bearer ${getAuthToken()}` }
+      }),
+      fetch(`${API_URL}/series`, {
+        method: 'GET',
+        headers: { "Authorization": `Bearer ${getAuthToken()}` }
+      })
+    ]);
     
-    if (!filmesResponse.ok) {
-      if (filmesResponse.status === 401) {
+    if (!filmesResponse.ok || !seriesResponse.ok) {
+      if (filmesResponse.status === 401 || seriesResponse.status === 401) {
         throw new Error('Não autorizado. Faça login novamente.');
       }
-      throw new Error('Erro ao carregar filmes');
+      throw new Error('Erro ao carregar conteúdo');
     }
     
-    const filmesData = await filmesResponse.json();
-    filmes.value = filmesData.map(filme => ({
-      ...filme,
-      type: 'filme'
-    }));
+    const [filmesData, seriesData] = await Promise.all([
+      filmesResponse.json(),
+      seriesResponse.json()
+    ]);
     
-    // Carregar séries
-    const seriesResponse = await fetch(`${API_URL}/series`, {
-      method: 'GET',
-      headers: {
-        "Authorization": `Bearer ${getAuthToken()}`
-      }
-    });
+    filmes.value = filmesData.map(filme => ({ ...filme, type: 'filme' }));
+    series.value = seriesData.map(serie => ({ ...serie, type: 'serie' }));
     
-    if (!seriesResponse.ok) {
-      if (seriesResponse.status === 401) {
-        throw new Error('Não autorizado. Faça login novamente.');
-      }
-      throw new Error('Erro ao carregar séries');
-    }
-    
-    const seriesData = await seriesResponse.json();
-    series.value = seriesData.map(serie => ({
-      ...serie,
-      type: 'serie'
-    }));
-    
-    // Selecionar um item em destaque aleatoriamente
+    // Selecionar item em destaque
     const allContent = [...filmes.value, ...series.value];
     if (allContent.length > 0) {
       const randomIndex = Math.floor(Math.random() * allContent.length);
       featuredItem.value = allContent[randomIndex];
     }
+    
+    // Carregar minha lista
+    await loadMinhaLista();
     
   } catch (err) {
     console.error('Erro ao carregar conteúdo:', err);
@@ -346,20 +838,20 @@ const loadContent = async () => {
   }
 };
 
-// Lista filtrada de conteúdo com base na aba ativa e busca
+// Lista filtrada de conteúdo
 const filteredContent = computed(() => {
   let content = [];
   
-  // Filtrar por tipo (aba)
   if (activeTab.value === 'todos') {
     content = [...filmes.value, ...series.value];
   } else if (activeTab.value === 'filmes') {
     content = [...filmes.value];
   } else if (activeTab.value === 'series') {
     content = [...series.value];
+  } else if (activeTab.value === 'lista') {
+    content = [...minhaLista.value.filmes, ...minhaLista.value.series];
   }
   
-  // Filtrar por busca
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
     content = content.filter(item => 
@@ -369,7 +861,6 @@ const filteredContent = computed(() => {
     );
   }
   
-  // Filtrar por gênero
   if (activeGenre.value) {
     content = content.filter(item => 
       item.genero.toLowerCase() === activeGenre.value.toLowerCase()
@@ -389,14 +880,30 @@ const genres = computed(() => {
 // Métodos de UI
 const setActiveTab = (tab) => {
   activeTab.value = tab;
-  // Limpar filtros e busca ao mudar de aba
   activeGenre.value = '';
   searchQuery.value = '';
+  
+  // Auto-refresh quando entrar na aba "Minha Lista"
+  if (tab === 'lista') {
+    console.log('🔄 Entrando na aba "Minha Lista", verificando dados...');
+    
+    // Se o cache for muito antigo (mais de 30 segundos), force refresh
+    const cacheAge = minhaListaCache.value.timestamp 
+      ? Date.now() - minhaListaCache.value.timestamp 
+      : Infinity;
+    
+    if (cacheAge > 30000) { // 30 segundos
+      console.log('📅 Cache antigo, forçando refresh...');
+      loadMinhaLista(true);
+    } else {
+      console.log('📦 Cache ainda válido, usando dados locais');
+      loadMinhaLista(false);
+    }
+  }
 };
 
 const handleSearch = () => {
   // A filtragem é feita automaticamente pelo computed property
-  // Este método existe para possíveis extensões futuras
 };
 
 const filterByGenre = (genre) => {
@@ -413,51 +920,66 @@ const closeDetails = () => {
 
 const formatDuration = (minutes) => {
   if (!minutes) return '';
-  
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
-  
-  if (hours > 0) {
-    return `${hours}h ${mins}min`;
-  }
-  
-  return `${mins}min`;
+  return hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
 };
 
 const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
-  
-  // Verificar se a imagem já é uma URL completa
-  if (imagePath.startsWith('http')) {
-    return imagePath;
-  }
-  
-  // Caso contrário, construir a URL com base no caminho da API
+  if (imagePath.startsWith('http')) return imagePath;
   return `../uploads/${imagePath}`;
 };
 
 const getSectionTitle = () => {
+  if (searchQuery.value) return `Resultados para "${searchQuery.value}"`;
+  if (activeGenre.value) return activeGenre.value;
   if (activeTab.value === 'todos') return 'Todos os Títulos';
   if (activeTab.value === 'filmes') return 'Filmes';
   if (activeTab.value === 'series') return 'Séries';
+  if (activeTab.value === 'lista') return `Minha Lista (${minhaListaCount.value})`;
   return '';
 };
 
-const getTabLabel = () => {
-  if (activeTab.value === 'todos') return 'títulos';
-  if (activeTab.value === 'filmes') return 'filmes';
-  if (activeTab.value === 'series') return 'séries';
-  return 'conteúdos';
+const getEmptyStateTitle = () => {
+  if (activeTab.value === 'lista') return 'Sua lista está vazia';
+  if (searchQuery.value) return 'Nenhum resultado encontrado';
+  if (activeGenre.value) return 'Nenhum conteúdo encontrado';
+  return 'Nenhum conteúdo disponível';
 };
 
-// Carregar conteúdo ao montar o componente
+const getEmptyStateMessage = () => {
+  if (activeTab.value === 'lista') return 'Adicione filmes e séries aos favoritos para acessá-los rapidamente';
+  if (searchQuery.value) return `Nenhum resultado para "${searchQuery.value}"`;
+  if (activeGenre.value) return `Nenhum conteúdo do gênero "${activeGenre.value}"`;
+  return 'Não há conteúdo disponível no momento';
+};
+
+// Image loading handlers
+const onImageLoad = (event) => {
+  event.target.style.opacity = '1';
+};
+
+const onImageError = (event) => {
+  event.target.style.display = 'none';
+};
+
+// Carregar conteúdo ao montar
 onMounted(() => {
   loadContent();
+  startAutoRefresh();
 });
 
-// Observar mudanças na aba ativa
+// Cleanup ao desmontar
+onUnmounted(() => {
+  stopAutoRefresh();
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+  }
+});
+
+// Watch para mudanças na aba ativa
 watch(activeTab, () => {
-  // Se mudar para a aba "todos", pode-se atualizar o item em destaque
   if (activeTab.value === 'todos' && !searchQuery.value && !activeGenre.value) {
     const allContent = [...filmes.value, ...series.value];
     if (allContent.length > 0) {
@@ -487,6 +1009,45 @@ watch(activeTab, () => {
   z-index: -1;
 }
 
+/* Smooth button animations */
+.smooth-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.smooth-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s;
+}
+
+.smooth-btn:hover::before {
+  left: 100%;
+}
+
+.smooth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.smooth-btn:active {
+  transform: translateY(0);
+}
+
+.smooth-card {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.smooth-card:hover {
+  transform: scale(1.05) translateY(-5px);
+}
+
 /* Header Styles */
 .netflix-header {
   display: flex;
@@ -497,6 +1058,7 @@ watch(activeTab, () => {
   position: sticky;
   top: 0;
   z-index: 10;
+  backdrop-filter: blur(10px);
 }
 
 .logo-container {
@@ -510,6 +1072,11 @@ watch(activeTab, () => {
   letter-spacing: -1px;
   text-transform: uppercase;
   margin: 0;
+  transition: all 0.3s ease;
+}
+
+.site-logo:hover {
+  transform: scale(1.05);
 }
 
 .nav-container {
@@ -531,17 +1098,40 @@ watch(activeTab, () => {
   font-weight: 500;
   padding: 8px 12px;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-bottom: 2px solid transparent;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .tab-button:hover {
   color: #fff;
+  transform: translateY(-1px);
 }
 
 .tab-button.active {
   color: #fff;
   border-bottom: 2px solid #e50914;
+}
+
+.list-count {
+  background-color: #e50914;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 .search-container {
@@ -561,11 +1151,13 @@ watch(activeTab, () => {
   color: #fff;
   padding: 8px 40px 8px 16px;
   font-size: 14px;
+  transition: all 0.3s ease;
 }
 
 .search-box input:focus {
   background-color: #454545;
   outline: none;
+  transform: scale(1.02);
 }
 
 .search-button {
@@ -578,6 +1170,12 @@ watch(activeTab, () => {
   color: #aaa;
   cursor: pointer;
   padding: 5px;
+  transition: all 0.3s ease;
+}
+
+.search-button:hover {
+  color: #fff;
+  transform: translateY(-50%) scale(1.1);
 }
 
 /* Featured Content */
@@ -607,6 +1205,11 @@ watch(activeTab, () => {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transition: transform 0.3s ease;
+}
+
+.featured-content:hover .featured-backdrop-image {
+  transform: scale(1.02);
 }
 
 .featured-gradient {
@@ -629,6 +1232,18 @@ watch(activeTab, () => {
   font-weight: 700;
   margin: 0 0 16px;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .featured-meta {
@@ -636,6 +1251,7 @@ watch(activeTab, () => {
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
 }
 
 .featured-year,
@@ -652,6 +1268,7 @@ watch(activeTab, () => {
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
+  backdrop-filter: blur(5px);
 }
 
 .featured-synopsis {
@@ -665,6 +1282,14 @@ watch(activeTab, () => {
   overflow: hidden;
   text-overflow: ellipsis;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.featured-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
 }
 
 .play-button {
@@ -679,11 +1304,47 @@ watch(activeTab, () => {
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
 }
 
 .play-button:hover {
   background-color: #f40612;
+  box-shadow: 0 4px 16px rgba(229, 9, 20, 0.5);
+}
+
+.add-button-featured {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(51, 51, 51, 0.8);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-button-featured.in-list {
+  background-color: rgba(34, 139, 34, 0.8);
+  border-color: rgba(34, 139, 34, 0.3);
+}
+
+.add-button-featured:hover:not(:disabled) {
+  background-color: rgba(68, 68, 68, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.add-button-featured.in-list:hover:not(:disabled) {
+  background-color: rgba(34, 139, 34, 0.9);
+}
+
+.add-button-featured:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Content Section */
@@ -695,10 +1356,82 @@ watch(activeTab, () => {
   margin-bottom: 40px;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.title-section {
+  flex: 1;
+}
+
 .section-title {
   font-size: 24px;
   font-weight: 600;
-  margin: 0 0 16px;
+  margin: 0 0 4px 0;
+}
+
+.last-update {
+  color: #aaa;
+  font-size: 12px;
+  font-weight: 400;
+  display: block;
+  margin-top: 2px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.refresh-button,
+.force-refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(51, 51, 51, 0.8);
+  color: #aaa;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.refresh-button:hover:not(:disabled),
+.force-refresh-button:hover:not(:disabled) {
+  color: #fff;
+  background-color: rgba(68, 68, 68, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.force-refresh-button {
+  background-color: rgba(0, 113, 235, 0.2);
+  color: #0071eb;
+  border-color: rgba(0, 113, 235, 0.3);
+}
+
+.force-refresh-button:hover:not(:disabled) {
+  background-color: rgba(0, 113, 235, 0.3);
+  color: #fff;
+  border-color: rgba(0, 113, 235, 0.5);
+}
+
+.refresh-button:disabled,
+.force-refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
 }
 
 .genre-list {
@@ -709,18 +1442,20 @@ watch(activeTab, () => {
 }
 
 .genre-button {
-  background-color: #333;
+  background-color: rgba(51, 51, 51, 0.8);
   color: #fff;
   border: none;
   border-radius: 20px;
   padding: 8px 16px;
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.2s;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .genre-button:hover {
-  background-color: #454545;
+  background-color: rgba(68, 68, 68, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* Content Grid */
@@ -732,16 +1467,15 @@ watch(activeTab, () => {
 
 .content-card {
   background-color: #2f2f2f;
-  border-radius: 4px;
+  border-radius: 8px;
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .content-card:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
   z-index: 2;
 }
 
@@ -750,12 +1484,15 @@ watch(activeTab, () => {
   width: 100%;
   height: 250px;
   background-color: #222;
+  overflow: hidden;
 }
 
 .content-poster img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
+  transition: all 0.3s ease;
 }
 
 .content-poster-placeholder {
@@ -772,12 +1509,74 @@ watch(activeTab, () => {
   position: absolute;
   top: 10px;
   right: 10px;
-  background-color: rgba(229, 9, 20, 0.8);
+  background-color: rgba(229, 9, 20, 0.9);
   color: #fff;
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 4px;
   font-weight: 500;
+  backdrop-filter: blur(5px);
+}
+
+.list-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(34, 139, 34, 0.9);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  backdrop-filter: blur(5px);
+  animation: bounceIn 0.5s ease;
+}
+
+@keyframes bounceIn {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.quick-add-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(51, 51, 51, 0.9);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.content-card:hover .quick-add-btn {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.quick-add-btn.in-list {
+  background-color: rgba(34, 139, 34, 0.9);
+}
+
+.quick-add-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+}
+
+.quick-add-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .content-info {
@@ -808,6 +1607,77 @@ watch(activeTab, () => {
   padding: 2px 6px;
   border-radius: 4px;
   display: inline-block;
+}
+
+/* Button content and spinners */
+.btn-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-spinner, .btn-spinner-small {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s linear infinite;
+}
+
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-spinner-small {
+  width: 12px;
+  height: 12px;
+  border-width: 1.5px;
+}
+
+/* Skeleton Loading */
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.skeleton-card {
+  background-color: #2f2f2f;
+  border-radius: 8px;
+  overflow: hidden;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-poster {
+  width: 100%;
+  height: 250px;
+  background-color: #404040;
+}
+
+.skeleton-info {
+  padding: 12px;
+}
+
+.skeleton-title {
+  height: 16px;
+  background-color: #404040;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-meta {
+  height: 12px;
+  background-color: #404040;
+  border-radius: 4px;
+  width: 60%;
+  margin-bottom: 6px;
+}
+
+.skeleton-genre {
+  height: 10px;
+  background-color: #404040;
+  border-radius: 4px;
+  width: 40%;
 }
 
 /* Loading, Error, Empty States */
@@ -848,16 +1718,23 @@ watch(activeTab, () => {
   color: #aaa;
   max-width: 500px;
   margin-bottom: 20px;
+  line-height: 1.5;
 }
 
-.retry-button {
+.retry-button,
+.browse-button {
   background-color: #e50914;
   color: #fff;
   border: none;
   border-radius: 4px;
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 14px;
   cursor: pointer;
+  font-weight: 500;
+}
+
+.browse-button {
+  background-color: #0071eb;
 }
 
 /* Modal Styles */
@@ -873,24 +1750,42 @@ watch(activeTab, () => {
   justify-content: center;
   z-index: 100;
   backdrop-filter: blur(5px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
   background-color: #181818;
-  border-radius: 6px;
+  border-radius: 8px;
   position: relative;
   width: 90%;
   max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modal-close {
   position: absolute;
   top: 16px;
   right: 16px;
-  background: none;
+  background: rgba(0, 0, 0, 0.5);
   border: none;
   color: #aaa;
   cursor: pointer;
@@ -901,7 +1796,7 @@ watch(activeTab, () => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: all 0.2s;
+  backdrop-filter: blur(10px);
 }
 
 .modal-close:hover {
@@ -1002,8 +1897,7 @@ watch(activeTab, () => {
 .add-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: #333;
+  background-color: rgba(51, 51, 51, 0.8);
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -1011,11 +1905,72 @@ watch(activeTab, () => {
   font-size: 16px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.add-button:hover {
-  background-color: #454545;
+.add-button.in-list {
+  background-color: rgba(34, 139, 34, 0.8);
+  border-color: rgba(34, 139, 34, 0.3);
+}
+
+.add-button:hover:not(:disabled) {
+  background-color: rgba(68, 68, 68, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.add-button.in-list:hover:not(:disabled) {
+  background-color: rgba(34, 139, 34, 0.9);
+}
+
+.add-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 500;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+}
+
+.toast.success {
+  background-color: rgba(34, 139, 34, 0.9);
+  border-color: rgba(34, 139, 34, 0.3);
+}
+
+.toast.error {
+  background-color: rgba(220, 53, 69, 0.9);
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.toast-enter-active, .toast-leave-active {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast-enter-from {
+  opacity: 0;
+  transform: translateX(100%) translateY(20px);
+}
+
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%) translateY(-20px);
 }
 
 /* Responsive adjustments */
@@ -1077,6 +2032,37 @@ watch(activeTab, () => {
   
   .details-actions {
     flex-direction: column;
+  }
+
+  .featured-actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .title-section {
+    text-align: center;
+  }
+
+  .header-actions {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .tabs {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .toast {
+    bottom: 80px;
+    left: 20px;
+    right: 20px;
   }
 }
 </style>

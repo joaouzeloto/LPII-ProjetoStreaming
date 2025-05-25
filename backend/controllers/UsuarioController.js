@@ -9,7 +9,7 @@ const SALT_ROUNDS = 10;
 class UsuarioController {
     static async createUsuario(req, res) {
     try {
-        console.log('Criando usuário...');
+        //console.log('Criando usuário...');
         const { nome, email, dtNascimento, apelido, senha, role } = req.body;
         const endereco = req.body.endereco;
         const caminho = req.file ? req.file.filename : undefined;
@@ -62,7 +62,7 @@ class UsuarioController {
         // Salvar usando o método da classe wrapper
         const novoUsuario = await usuario.save();
 
-        console.log('Usuário criado com sucesso:', novoUsuario);
+        //console.log('Usuário criado com sucesso:', novoUsuario);
         return res.status(201).json({ 
             message: 'Usuário criado com sucesso',
             usuario: {
@@ -83,7 +83,7 @@ class UsuarioController {
     static async visualizeUsuarios(req, res) {
         try {
             const usuarios = await Usuario.findAll();
-            console.log('Usuários encontrados:', usuarios);
+            //console.log('Usuários encontrados:', usuarios);
             return res.status(200).json(usuarios);
         } catch (error) {
             console.error('Erro ao visualizar os usuários:', error);
@@ -201,9 +201,9 @@ class UsuarioController {
 
     static async findUsuarioById(req, res) {
         try {
-            console.log(req.params);
+            //console.log(req.params);
             const { id } = req.params;
-            console.log('ID recebido:', id);
+            //console.log('ID recebido:', id);
             
 
             const usuario = await Usuario.findById(id);
