@@ -1,7 +1,7 @@
 <template>
   <div class="netflix-home">
     <div class="netflix-bg-overlay"></div>
-    
+
     <!-- Header -->
     <header class="netflix-header">
       <div class="logo-container">
@@ -9,32 +9,16 @@
       </div>
       <div class="nav-container">
         <div class="tabs">
-          <button 
-            class="tab-button" 
-            :class="{ active: activeTab === 'todos' }"
-            @click="setActiveTab('todos')"
-          >
+          <button class="tab-button" :class="{ active: activeTab === 'todos' }" @click="setActiveTab('todos')">
             Todos
           </button>
-          <button 
-            class="tab-button" 
-            :class="{ active: activeTab === 'filmes' }"
-            @click="setActiveTab('filmes')"
-          >
+          <button class="tab-button" :class="{ active: activeTab === 'filmes' }" @click="setActiveTab('filmes')">
             Filmes
           </button>
-          <button 
-            class="tab-button" 
-            :class="{ active: activeTab === 'series' }"
-            @click="setActiveTab('series')"
-          >
+          <button class="tab-button" :class="{ active: activeTab === 'series' }" @click="setActiveTab('series')">
             Séries
           </button>
-          <button 
-            class="tab-button" 
-            :class="{ active: activeTab === 'lista' }"
-            @click="setActiveTab('lista')"
-          >
+          <button class="tab-button" :class="{ active: activeTab === 'lista' }" @click="setActiveTab('lista')">
             <span>Minha Lista</span>
             <span v-if="minhaListaCount > 0" class="list-count">{{ minhaListaCount }}</span>
           </button>
@@ -42,14 +26,10 @@
       </div>
       <div class="search-container">
         <div class="search-box">
-          <input 
-            type="text" 
-            v-model="searchQuery" 
-            placeholder="Buscar títulos..."
-            @input="handleSearch" 
-          />
+          <input type="text" v-model="searchQuery" placeholder="Buscar títulos..." @input="handleSearch" />
           <button class="search-button">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
@@ -57,39 +37,41 @@
         </div>
       </div>
     </header>
-    
+
     <!-- Main Content -->
     <main class="netflix-content">
       <!-- Featured Content -->
       <section v-if="!searchQuery && activeTab === 'todos' && featuredItem" class="featured-content">
         <div class="featured-backdrop">
-          <img :src="'../uploads/'+featuredItem.caminho" :alt="featuredItem.nome" class="featured-backdrop-image">
+          <img :src="'../uploads/' + featuredItem.caminho" :alt="featuredItem.nome" class="featured-backdrop-image">
           <div class="featured-gradient"></div>
         </div>
         <div class="featured-info">
           <h2 class="featured-title">{{ featuredItem.nome }}</h2>
           <div class="featured-meta">
             <span class="featured-year">{{ featuredItem.anoLancamento }}</span>
-            <span v-if="featuredItem.duracao" class="featured-duration">{{ formatDuration(featuredItem.duracao) }}</span>
-            <span v-if="featuredItem.temporadas" class="featured-seasons">{{ featuredItem.temporadas }} Temporadas</span>
+            <span v-if="featuredItem.duracao" class="featured-duration">{{ formatDuration(featuredItem.duracao)
+            }}</span>
+            <span v-if="featuredItem.temporadas" class="featured-seasons">{{ featuredItem.temporadas }}
+              Temporadas</span>
             <span class="featured-genre">{{ featuredItem.genero }}</span>
           </div>
           <p class="featured-synopsis">{{ featuredItem.sinopse }}</p>
           <div class="featured-actions">
             <button class="play-button smooth-btn" @click="showDetails(featuredItem)">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
               Ver detalhes
             </button>
-            <button 
-              class="add-button-featured smooth-btn"
+            <button class="add-button-featured smooth-btn"
               :class="{ 'in-list': isInMinhaLista(featuredItem), 'loading': isItemLoading(featuredItem._id) }"
-              @click="toggleMinhaLista(featuredItem)"
-              :disabled="isItemLoading(featuredItem._id)"
-            >
+              @click="toggleMinhaLista(featuredItem)" :disabled="isItemLoading(featuredItem._id)">
               <div class="btn-content">
-                <svg v-if="!isItemLoading(featuredItem._id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-if="!isItemLoading(featuredItem._id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
                   <line v-if="!isInMinhaLista(featuredItem)" x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -100,28 +82,23 @@
           </div>
         </div>
       </section>
-      
+
       <!-- Categorias - Apenas na página inicial -->
       <section v-if="!searchQuery && activeTab === 'todos' && genres.length > 0" class="content-section">
         <h2 class="section-title">Gêneros em Alta</h2>
         <div class="genre-list">
-          <button 
-            v-for="genre in genres" 
-            :key="genre" 
-            class="genre-button smooth-btn"
-            @click="filterByGenre(genre)"
-          >
+          <button v-for="genre in genres" :key="genre" class="genre-button smooth-btn" @click="filterByGenre(genre)">
             {{ genre }}
           </button>
         </div>
       </section>
-      
+
       <!-- Loading State -->
       <div v-if="loading" class="loading-container">
         <div class="loading-spinner"></div>
         <p>Carregando conteúdo...</p>
       </div>
-      
+
       <!-- Loading Minha Lista -->
       <div v-else-if="loadingMinhaLista && activeTab === 'lista'" class="loading-container">
         <div class="skeleton-grid">
@@ -135,10 +112,11 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Error State -->
       <div v-else-if="error" class="error-container">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e50914" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#e50914"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="12" y1="8" x2="12" y2="12"></line>
           <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -147,10 +125,11 @@
         <p>{{ error }}</p>
         <button class="retry-button smooth-btn" @click="loadContent">Tentar novamente</button>
       </div>
-      
+
       <!-- Empty State -->
       <div v-else-if="filteredContent.length === 0" class="empty-container">
-        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#777"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"></circle>
           <line x1="8" y1="12" x2="16" y2="12"></line>
         </svg>
@@ -160,7 +139,7 @@
           Navegar Catálogo
         </button>
       </div>
-      
+
       <!-- Main Content Grid -->
       <section v-else class="content-section">
         <div class="section-header">
@@ -171,54 +150,40 @@
             </small>
           </div>
           <div class="header-actions">
-            <button 
-              v-if="activeTab === 'lista' && !loadingMinhaLista" 
-              class="refresh-button smooth-btn"
-              @click="refreshMinhaLista"
-              :disabled="refreshing"
-            >
-              <svg :class="{ spinning: refreshing }" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button v-if="activeTab === 'lista' && !loadingMinhaLista" class="refresh-button smooth-btn"
+              @click="refreshMinhaLista" :disabled="refreshing">
+              <svg :class="{ spinning: refreshing }" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
                 <polyline points="23 4 23 10 17 10"></polyline>
                 <polyline points="1 20 1 14 7 14"></polyline>
                 <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
               </svg>
               Atualizar Lista
             </button>
-            <button 
-              v-if="activeTab === 'lista'" 
-              class="force-refresh-button smooth-btn"
-              @click="forceFullRefresh"
-              :disabled="loading || loadingMinhaLista"
-              title="Recarregar todos os dados"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                <path d="M3 3v5h5"/>
-                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                <path d="M21 21v-5h-5"/>
+            <button v-if="activeTab === 'lista'" class="force-refresh-button smooth-btn" @click="forceFullRefresh"
+              :disabled="loading || loadingMinhaLista" title="Recarregar todos os dados">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M21 21v-5h-5" />
               </svg>
               Sincronizar
             </button>
           </div>
         </div>
-        
+
         <div class="content-grid">
-          <div 
-            v-for="item in filteredContent" 
-            :key="item._id" 
-            class="content-card smooth-card"
-            @click="showDetails(item)"
-          >
+          <div v-for="item in filteredContent" :key="item._id" class="content-card smooth-card"
+            @click="showDetails(item)">
             <div class="content-poster">
-              <img 
-                v-if="item.caminho" 
-                :src="getImageUrl(item.caminho)" 
-                :alt="item.nome"
-                @load="onImageLoad"
-                @error="onImageError"
-              />
+              <img v-if="item.caminho" :src="getImageUrl(item.caminho)" :alt="item.nome" @load="onImageLoad"
+                @error="onImageError" />
               <div v-else class="content-poster-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
                   <line x1="7" y1="2" x2="7" y2="22"></line>
                   <line x1="17" y1="2" x2="17" y2="22"></line>
@@ -234,19 +199,18 @@
               </div>
               <!-- Indicador de item na lista -->
               <div v-if="isInMinhaLista(item)" class="list-indicator">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
               <!-- Quick action button -->
-              <button 
-                v-if="activeTab !== 'lista'"
-                class="quick-add-btn smooth-btn"
+              <button v-if="activeTab !== 'lista'" class="quick-add-btn smooth-btn"
                 :class="{ 'in-list': isInMinhaLista(item), 'loading': isItemLoading(item._id) }"
-                @click.stop="toggleMinhaLista(item)"
-                :disabled="isItemLoading(item._id)"
-              >
-                <svg v-if="!isItemLoading(item._id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                @click.stop="toggleMinhaLista(item)" :disabled="isItemLoading(item._id)">
+                <svg v-if="!isItemLoading(item._id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
                   <line v-if="!isInMinhaLista(item)" x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -257,7 +221,8 @@
               <h3 class="content-title">{{ item.nome }}</h3>
               <div class="content-meta">
                 <span class="content-year">{{ item.anoLancamento }}</span>
-                <span v-if="item.duracao && !item.temporadas" class="content-duration">{{ formatDuration(item.duracao) }}</span>
+                <span v-if="item.duracao && !item.temporadas" class="content-duration">{{ formatDuration(item.duracao)
+                }}</span>
                 <span v-if="item.temporadas" class="content-seasons">{{ item.temporadas }} Temp</span>
               </div>
               <span class="content-genre">{{ item.genero }}</span>
@@ -266,26 +231,24 @@
         </div>
       </section>
     </main>
-    
+
     <!-- Details Modal -->
     <div v-if="selectedItem" class="modal-overlay" @click="closeDetails">
       <div class="modal-content details-modal" @click.stop>
         <button class="modal-close smooth-btn" @click="closeDetails">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
         </button>
-        
+
         <div class="details-header">
           <div class="details-poster">
-            <img 
-              v-if="selectedItem.caminho" 
-              :src="getImageUrl(selectedItem.caminho)" 
-              :alt="selectedItem.nome"
-            />
+            <img v-if="selectedItem.caminho" :src="getImageUrl(selectedItem.caminho)" :alt="selectedItem.nome" />
             <div v-else class="details-poster-placeholder">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
                 <line x1="7" y1="2" x2="7" y2="22"></line>
                 <line x1="17" y1="2" x2="17" y2="22"></line>
@@ -301,7 +264,8 @@
             <h2 class="details-title">{{ selectedItem.nome }}</h2>
             <div class="details-meta">
               <span class="details-year">{{ selectedItem.anoLancamento }}</span>
-              <span v-if="selectedItem.duracao" class="details-duration">{{ formatDuration(selectedItem.duracao) }}</span>
+              <span v-if="selectedItem.duracao" class="details-duration">{{ formatDuration(selectedItem.duracao)
+              }}</span>
               <span class="details-genre">{{ selectedItem.genero }}</span>
               <span v-if="selectedItem.type" class="details-type-badge">
                 {{ selectedItem.type === 'filme' ? 'Filme' : 'Série' }}
@@ -313,26 +277,26 @@
             </div>
           </div>
         </div>
-        
+
         <div class="details-body">
           <h3 class="section-title">Sinopse</h3>
           <p class="details-synopsis">{{ selectedItem.sinopse }}</p>
-          
+
           <div class="details-actions">
             <button class="play-button smooth-btn">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
               Assistir agora
             </button>
-            <button 
-              class="add-button smooth-btn"
+            <button class="add-button smooth-btn"
               :class="{ 'in-list': isInMinhaLista(selectedItem), 'loading': isItemLoading(selectedItem._id) }"
-              @click="toggleMinhaLista(selectedItem)"
-              :disabled="isItemLoading(selectedItem._id)"
-            >
+              @click="toggleMinhaLista(selectedItem)" :disabled="isItemLoading(selectedItem._id)">
               <div class="btn-content">
-                <svg v-if="!isItemLoading(selectedItem._id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-if="!isItemLoading(selectedItem._id)" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round">
                   <line v-if="!isInMinhaLista(selectedItem)" x1="12" y1="5" x2="12" y2="19"></line>
                   <line x1="5" y1="12" x2="19" y2="12"></line>
                 </svg>
@@ -340,6 +304,17 @@
                 <span>{{ getListButtonText(selectedItem) }}</span>
               </div>
             </button>
+            <div class="rating">
+              <label v-for="star in 5" :key="star" :class="{ filled: star <= selectedRating }"
+                @click="handleRating(star)">
+                ★
+              </label>
+
+              <button v-if="avaliacaoId" @click="deleteRating" class="delete-button">
+                Remover Avaliação
+              </button>
+            </div>
+
           </div>
         </div>
       </div>
@@ -349,10 +324,13 @@
     <transition name="toast">
       <div v-if="toast.show" class="toast" :class="toast.type">
         <div class="toast-content">
-          <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="8" x2="12" y2="12"></line>
             <line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -366,6 +344,101 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+
+
+const props = defineProps({
+  userId: String,
+  filmeId: String,
+  serieId: String,
+});
+
+const selectedRating = ref(0);
+const avaliacaoId = ref(null);
+
+const getUrl = () => {
+  if (props.filmeId) {
+    return `/avaliacao/usuario/${props.userId}/filme/${props.filmeId}`;
+  } else if (props.serieId) {
+    return `/avaliacao/usuario/${props.userId}/serie/${props.serieId}`;
+  }
+  return null;
+};
+
+const fetchUserRating = async () => {
+  const url = getUrl();
+  if (!url) return;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.warn('Nenhuma avaliação encontrada');
+      return;
+    }
+
+    const data = await response.json();
+    if (data && data.nota) {
+      selectedRating.value = data.nota;
+      avaliacaoId.value = data._id;
+    }
+  } catch (error) {
+    console.error('Erro ao buscar avaliação:', error);
+  }
+};
+
+const handleRating = async (rating) => {
+  selectedRating.value = rating;
+
+  const payload = {
+    userId: props.userId,
+    nota: rating,
+    filmeId: props.filmeId || undefined,
+    serieId: props.serieId || undefined,
+  };
+
+  try {
+    const response = await fetch('/avaliacao', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao salvar avaliação');
+    }
+
+    const data = await response.json();
+    avaliacaoId.value = data._id;
+    console.log('Avaliação salva com sucesso');
+  } catch (error) {
+    console.error('Erro ao salvar avaliação:', error);
+  }
+};
+
+const deleteRating = async () => {
+  if (!avaliacaoId.value) return;
+
+  try {
+    const response = await fetch(`/avaliacao/${avaliacaoId.value}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao deletar avaliação');
+    }
+
+    console.log('Avaliação deletada');
+    selectedRating.value = 0;
+    avaliacaoId.value = null;
+  } catch (error) {
+    console.error('Erro ao deletar avaliação:', error);
+  }
+};
+
+onMounted(() => {
+  fetchUserRating();
+});
 
 // API base URL
 const API_URL = 'http://localhost:3000';
@@ -399,7 +472,7 @@ const startAutoRefresh = () => {
   if (autoRefreshInterval.value) {
     clearInterval(autoRefreshInterval.value);
   }
-  
+
   autoRefreshInterval.value = setInterval(() => {
     if (activeTab.value === 'lista' && !loadingMinhaLista.value && !refreshing.value) {
       console.log('🔄 Auto-refresh da lista...');
@@ -425,13 +498,13 @@ setInterval(() => {
 // Função para forçar atualização completa (última alternativa)
 const forceFullRefresh = () => {
   console.log('🔄 Forçando atualização completa...');
-  
+
   // Limpar todos os caches
   minhaListaCache.value = { data: null, timestamp: null };
-  
+
   // Recarregar tudo
   loadContent();
-  
+
   showToast('Dados atualizados', 'success');
 };
 
@@ -447,19 +520,19 @@ const getUserId = () => {
     if (token) {
       const payload = JSON.parse(atob(token.split('.')[1]));
       const id = payload.id || payload.userId || payload.user?._id;
-      
+
       // Verificar se o ID é válido
       if (id && typeof id === 'string' && id !== 'undefined' && id !== 'null' && id.length === 24) {
         return id;
       }
     }
-    
+
     // Alternativa: buscar userId do localStorage
     const localUserId = localStorage.getItem('userId');
     if (localUserId && localUserId !== 'undefined' && localUserId !== 'null' && localUserId.length === 24) {
       return localUserId;
     }
-    
+
     return null;
   } catch (error) {
     console.error('Erro ao obter userId:', error);
@@ -471,23 +544,23 @@ const getUserId = () => {
 const checkAuthentication = () => {
   const token = getAuthToken();
   const userIdValue = getUserId();
-  
+
   console.log('🔐 Verificando autenticação:', {
     temToken: !!token,
     userId: userIdValue,
     tipoUserId: typeof userIdValue
   });
-  
+
   if (!token || !userIdValue) {
     error.value = 'Usuário não autenticado. Faça login para continuar.';
     return false;
   }
-  
+
   if (!isValidId(userIdValue)) {
     error.value = 'ID de usuário inválido. Faça login novamente.';
     return false;
   }
-  
+
   userId.value = userIdValue;
   return true;
 };
@@ -523,14 +596,14 @@ const loadMinhaLista = async (forceRefresh = false) => {
     showToast('Erro: ID de usuário inválido', 'error');
     return;
   }
-  
+
   // Usar cache se válido e não forçar refresh
   if (!forceRefresh && isCacheValid() && minhaListaCache.value.data) {
     console.log('📦 Usando cache para minha lista');
     minhaLista.value = minhaListaCache.value.data;
     return;
   }
-  
+
   if (forceRefresh) {
     refreshing.value = true;
     console.log('🔄 Forçando refresh da lista...');
@@ -538,32 +611,32 @@ const loadMinhaLista = async (forceRefresh = false) => {
     loadingMinhaLista.value = true;
     console.log('📥 Carregando minha lista...');
   }
-  
+
   try {
     console.log(`📡 GET ${API_URL}/listausuario/${userId.value}`);
-    
+
     const response = await fetch(`${API_URL}/listausuario/${userId.value}`, {
       method: 'GET',
       headers: {
         "Authorization": `Bearer ${getAuthToken()}`
       }
     });
-    
+
     console.log(`📡 Resposta: ${response.status} ${response.statusText}`);
-    
+
     if (response.ok) {
       const lista = await response.json();
       const listaData = {
         filmes: lista.filmes || [],
         series: lista.series || []
       };
-      
+
       console.log('✅ Lista carregada:', {
         filmes: listaData.filmes.length,
         series: listaData.series.length,
         total: listaData.filmes.length + listaData.series.length
       });
-      
+
       minhaLista.value = listaData;
       minhaListaCache.value = {
         data: listaData,
@@ -603,10 +676,10 @@ const criarLista = async () => {
     console.error('❌ UserId inválido para criar lista:', userId.value);
     return;
   }
-  
+
   try {
     console.log('📝 Criando nova lista para usuário:', userId.value);
-    
+
     const response = await fetch(`${API_URL}/listausuario/criar`, {
       method: 'POST',
       headers: {
@@ -615,18 +688,18 @@ const criarLista = async () => {
       },
       body: JSON.stringify({ userId: userId.value })
     });
-    
+
     console.log(`📡 Resposta criação: ${response.status} ${response.statusText}`);
-    
+
     if (response.ok) {
       const lista = await response.json();
       const listaData = {
         filmes: lista.filmes || [],
         series: lista.series || []
       };
-      
+
       console.log('✅ Lista criada com sucesso');
-      
+
       minhaLista.value = listaData;
       minhaListaCache.value = {
         data: listaData,
@@ -645,7 +718,7 @@ const criarLista = async () => {
 // Verificar se um item está na minha lista
 const isInMinhaLista = (item) => {
   if (!item || !minhaLista.value) return false;
-  
+
   if (item.type === 'filme') {
     return minhaLista.value.filmes.some(filme => filme._id === item._id);
   } else {
@@ -661,10 +734,10 @@ const minhaListaCount = computed(() => {
 // Helper para mostrar tempo da última atualização
 const lastUpdateText = computed(() => {
   if (!minhaListaCache.value.timestamp) return '';
-  
+
   const now = Date.now();
   const diff = now - minhaListaCache.value.timestamp;
-  
+
   if (diff < 60000) return 'Atualizado agora';
   if (diff < 3600000) return `Atualizado há ${Math.floor(diff / 60000)}min`;
   return `Atualizado há ${Math.floor(diff / 3600000)}h`;
@@ -672,20 +745,20 @@ const lastUpdateText = computed(() => {
 
 // Validar se um ID é válido
 const isValidId = (id) => {
-  return id && 
-         id !== 'undefined' && 
-         id !== 'null' && 
-         id !== undefined && 
-         id !== null && 
-         typeof id === 'string' && 
-         id.length === 24 && 
-         /^[0-9a-fA-F]{24}$/.test(id);
+  return id &&
+    id !== 'undefined' &&
+    id !== 'null' &&
+    id !== undefined &&
+    id !== null &&
+    typeof id === 'string' &&
+    id.length === 24 &&
+    /^[0-9a-fA-F]{24}$/.test(id);
 };
 
 // ⭐ FUNÇÃO PRINCIPAL MODIFICADA - Adicionar/Remover item da minha lista com RELOAD
 const toggleMinhaLista = async (item) => {
   if (!userId.value || isItemLoading(item._id)) return;
-  
+
   // Validações extras
   if (!item || !item._id) {
     console.error('Item inválido:', item);
@@ -710,19 +783,19 @@ const toggleMinhaLista = async (item) => {
     showToast('Erro: Tipo de item inválido', 'error');
     return;
   }
-  
+
   // Clear previous debounce
   if (debounceTimer) {
     clearTimeout(debounceTimer);
   }
-  
+
   // Add debounce
   debounceTimer = setTimeout(async () => {
     loadingItems.value.add(item._id);
     const isCurrentlyInList = isInMinhaLista(item);
     const action = isCurrentlyInList ? 'DELETE' : 'POST';
     const actionText = isCurrentlyInList ? 'remover' : 'adicionar';
-    
+
     console.log(`🎬 ${actionText.toUpperCase()} ${item.type.toUpperCase()}:`, {
       itemId: item._id,
       userId: userId.value,
@@ -730,14 +803,14 @@ const toggleMinhaLista = async (item) => {
       tipo: item.type,
       acao: action
     });
-    
+
     try {
-      const endpoint = item.type === 'filme' 
+      const endpoint = item.type === 'filme'
         ? `/listausuario/filme/${item._id}`
         : `/listausuario/serie/${item._id}`;
-      
+
       console.log(`📡 Fazendo requisição: ${action} ${API_URL}${endpoint}`);
-      
+
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: action,
         headers: {
@@ -746,24 +819,24 @@ const toggleMinhaLista = async (item) => {
         },
         body: JSON.stringify({ userId: userId.value })
       });
-      
+
       console.log(`📡 Resposta: ${response.status} ${response.statusText}`);
-      
+
       if (response.ok) {
         console.log(`✅ Operação ${actionText} realizada com sucesso!`);
-        
+
         // Mostrar feedback de sucesso
-        const successMessage = isCurrentlyInList 
+        const successMessage = isCurrentlyInList
           ? `"${item.nome}" removido da sua lista`
           : `"${item.nome}" adicionado à sua lista`;
         showToast(successMessage, 'success');
-        
+
         // 🔄 RELOAD DA PÁGINA após operação bem-sucedida
         setTimeout(() => {
           console.log('🔄 Recarregando página...');
           window.location.reload();
         }, 1500); // Pequeno delay para mostrar o toast
-        
+
       } else {
         const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
         console.error(`❌ Erro na resposta:`, errorData);
@@ -788,10 +861,10 @@ const getListButtonText = (item) => {
 // Carregar conteúdo (filmes e séries)
 const loadContent = async () => {
   if (!checkAuthentication()) return;
-  
+
   loading.value = true;
   error.value = null;
-  
+
   try {
     // Carregar filmes e séries em paralelo
     const [filmesResponse, seriesResponse] = await Promise.all([
@@ -804,32 +877,32 @@ const loadContent = async () => {
         headers: { "Authorization": `Bearer ${getAuthToken()}` }
       })
     ]);
-    
+
     if (!filmesResponse.ok || !seriesResponse.ok) {
       if (filmesResponse.status === 401 || seriesResponse.status === 401) {
         throw new Error('Não autorizado. Faça login novamente.');
       }
       throw new Error('Erro ao carregar conteúdo');
     }
-    
+
     const [filmesData, seriesData] = await Promise.all([
       filmesResponse.json(),
       seriesResponse.json()
     ]);
-    
+
     filmes.value = filmesData.map(filme => ({ ...filme, type: 'filme' }));
     series.value = seriesData.map(serie => ({ ...serie, type: 'serie' }));
-    
+
     // Selecionar item em destaque
     const allContent = [...filmes.value, ...series.value];
     if (allContent.length > 0) {
       const randomIndex = Math.floor(Math.random() * allContent.length);
       featuredItem.value = allContent[randomIndex];
     }
-    
+
     // Carregar minha lista
     await loadMinhaLista();
-    
+
   } catch (err) {
     console.error('Erro ao carregar conteúdo:', err);
     error.value = err.message || 'Não foi possível carregar o conteúdo. Por favor, tente novamente.';
@@ -841,7 +914,7 @@ const loadContent = async () => {
 // Lista filtrada de conteúdo
 const filteredContent = computed(() => {
   let content = [];
-  
+
   if (activeTab.value === 'todos') {
     content = [...filmes.value, ...series.value];
   } else if (activeTab.value === 'filmes') {
@@ -851,22 +924,22 @@ const filteredContent = computed(() => {
   } else if (activeTab.value === 'lista') {
     content = [...minhaLista.value.filmes, ...minhaLista.value.series];
   }
-  
+
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase();
-    content = content.filter(item => 
-      item.nome.toLowerCase().includes(query) || 
+    content = content.filter(item =>
+      item.nome.toLowerCase().includes(query) ||
       item.genero.toLowerCase().includes(query) ||
       item.sinopse.toLowerCase().includes(query)
     );
   }
-  
+
   if (activeGenre.value) {
-    content = content.filter(item => 
+    content = content.filter(item =>
       item.genero.toLowerCase() === activeGenre.value.toLowerCase()
     );
   }
-  
+
   return content;
 });
 
@@ -882,16 +955,16 @@ const setActiveTab = (tab) => {
   activeTab.value = tab;
   activeGenre.value = '';
   searchQuery.value = '';
-  
+
   // Auto-refresh quando entrar na aba "Minha Lista"
   if (tab === 'lista') {
     console.log('🔄 Entrando na aba "Minha Lista", verificando dados...');
-    
+
     // Se o cache for muito antigo (mais de 30 segundos), force refresh
-    const cacheAge = minhaListaCache.value.timestamp 
-      ? Date.now() - minhaListaCache.value.timestamp 
+    const cacheAge = minhaListaCache.value.timestamp
+      ? Date.now() - minhaListaCache.value.timestamp
       : Infinity;
-    
+
     if (cacheAge > 30000) { // 30 segundos
       console.log('📅 Cache antigo, forçando refresh...');
       loadMinhaLista(true);
@@ -998,6 +1071,39 @@ watch(activeTab, () => {
   font-family: 'Helvetica Neue', Arial, sans-serif;
   position: relative;
 }
+
+.rating {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  align-items: center;
+}
+
+.rating label {
+  font-size: 30px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.rating label.filled {
+  color: gold;
+}
+
+.rating label:hover,
+.rating label:hover~label {
+  transform: scale(1.2);
+}
+
+.delete-button {
+  background: none;
+  border: none;
+  color: red;
+  cursor: pointer;
+  margin-left: 10px;
+  font-size: 14px;
+}
+
 
 .netflix-bg-overlay {
   position: fixed;
@@ -1129,9 +1235,17 @@ watch(activeTab, () => {
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .search-container {
@@ -1240,6 +1354,7 @@ watch(activeTab, () => {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1536,9 +1651,17 @@ watch(activeTab, () => {
 }
 
 @keyframes bounceIn {
-  0% { transform: scale(0); }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(0);
+  }
+
+  50% {
+    transform: scale(1.2);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .quick-add-btn {
@@ -1616,7 +1739,8 @@ watch(activeTab, () => {
   gap: 8px;
 }
 
-.btn-spinner, .btn-spinner-small {
+.btn-spinner,
+.btn-spinner-small {
   border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   border-top-color: #fff;
@@ -1704,7 +1828,9 @@ watch(activeTab, () => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-container h2,
@@ -1754,8 +1880,13 @@ watch(activeTab, () => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -1775,6 +1906,7 @@ watch(activeTab, () => {
     opacity: 0;
     transform: translateY(30px) scale(0.9);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1850,7 +1982,7 @@ watch(activeTab, () => {
   flex-wrap: wrap;
 }
 
-.details-meta > span {
+.details-meta>span {
   font-size: 16px;
 }
 
@@ -1959,7 +2091,8 @@ watch(activeTab, () => {
   border-color: rgba(220, 53, 69, 0.3);
 }
 
-.toast-enter-active, .toast-leave-active {
+.toast-enter-active,
+.toast-leave-active {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1980,56 +2113,56 @@ watch(activeTab, () => {
     align-items: stretch;
     gap: 16px;
   }
-  
+
   .logo-container {
     display: flex;
     justify-content: center;
   }
-  
+
   .search-container {
     flex: 1;
     max-width: none;
   }
-  
+
   .featured-content {
     height: auto;
     min-height: 300px;
   }
-  
+
   .featured-info {
     width: 100%;
     padding: 0 4% 30px;
   }
-  
+
   .featured-title {
     font-size: 32px;
   }
-  
+
   .content-grid {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
-  
+
   .details-header {
     flex-direction: column;
   }
-  
+
   .details-poster {
     flex: 0 0 auto;
     height: 300px;
   }
-  
+
   .details-main-info {
     padding: 20px;
   }
-  
+
   .details-title {
     font-size: 24px;
   }
-  
+
   .details-body {
     padding: 20px;
   }
-  
+
   .details-actions {
     flex-direction: column;
   }

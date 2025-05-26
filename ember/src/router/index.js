@@ -15,6 +15,7 @@ const routes = [
   {path: '/user', component: DashUser, meta: { requiresAuth: true,  }},
   {path: '/home', component: DashHome, meta: { requiresAuth: true }},
   {path: '/homeAdmin', component: DashHomeAdmin, meta: { requiresAuth: true, requiresFuncionario: true }},
+  //{path: '/avaliacao', component: DashHome, meta: { requiresAuth: true }},
 ];
 
 const router = createRouter({
