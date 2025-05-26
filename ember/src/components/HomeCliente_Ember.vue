@@ -197,8 +197,8 @@
               <div class="content-badge" v-if="item.type">
                 {{ item.type === 'filme' ? 'Filme' : 'Série' }}
               </div>
-              <!-- Indicador de item na lista -->
-              <div v-if="isInMinhaLista(item)" class="list-indicator">
+              <!-- Indicador de item na lista - CORRIGIDO -->
+              <div v-if="isInMinhaLista(item)" class="list-indicator" :key="`indicator-${item._id}`">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
@@ -304,17 +304,25 @@
                 <span>{{ getListButtonText(selectedItem) }}</span>
               </div>
             </button>
+          </div>
+
+          <!-- Sistema de Avaliação Corrigido -->
+          <div class="rating-section">
+            <h3 class="section-title">Avaliação</h3>
             <div class="rating">
-              <label v-for="star in 5" :key="star" :class="{ filled: star <= selectedRating }"
-                @click="handleRating(star)">
+              <label v-for="star in 5" :key="star" 
+                     :class="{ filled: star <= selectedRating }" 
+                     @click="handleRating(star)"
+                     class="star-label">
                 ★
               </label>
-
-              <button v-if="avaliacaoId" @click="deleteRating" class="delete-button">
+              <button v-if="avaliacaoId" 
+                      @click="deleteRating" 
+                      class="delete-button"
+                      :disabled="!avaliacaoId">
                 Remover Avaliação
               </button>
             </div>
-
           </div>
         </div>
       </div>
@@ -345,105 +353,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 
-
-const props = defineProps({
-  userId: String,
-  filmeId: String,
-  serieId: String,
-});
-
-const selectedRating = ref(0);
-const avaliacaoId = ref(null);
-
-const getUrl = () => {
-  if (props.filmeId) {
-    return `/avaliacao/usuario/${props.userId}/filme/${props.filmeId}`;
-  } else if (props.serieId) {
-    return `/avaliacao/usuario/${props.userId}/serie/${props.serieId}`;
-  }
-  return null;
-};
-
-const fetchUserRating = async () => {
-  const url = getUrl();
-  if (!url) return;
-
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      console.warn('Nenhuma avaliação encontrada');
-      return;
-    }
-
-    const data = await response.json();
-    if (data && data.nota) {
-      selectedRating.value = data.nota;
-      avaliacaoId.value = data._id;
-    }
-  } catch (error) {
-    console.error('Erro ao buscar avaliação:', error);
-  }
-};
-
-const handleRating = async (rating) => {
-  selectedRating.value = rating;
-
-  const payload = {
-    userId: props.userId,
-    nota: rating,
-    filmeId: props.filmeId || undefined,
-    serieId: props.serieId || undefined,
-  };
-
-  try {
-    const response = await fetch('/avaliacao', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      throw new Error('Erro ao salvar avaliação');
-    }
-
-    const data = await response.json();
-    avaliacaoId.value = data._id;
-    console.log('Avaliação salva com sucesso');
-  } catch (error) {
-    console.error('Erro ao salvar avaliação:', error);
-  }
-};
-
-const deleteRating = async () => {
-  if (!avaliacaoId.value) return;
-
-  try {
-    const response = await fetch(`/avaliacao/${avaliacaoId.value}`, {
-      method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      throw new Error('Erro ao deletar avaliação');
-    }
-
-    console.log('Avaliação deletada');
-    selectedRating.value = 0;
-    avaliacaoId.value = null;
-  } catch (error) {
-    console.error('Erro ao deletar avaliação:', error);
-  }
-};
-
-onMounted(() => {
-  fetchUserRating();
-});
-
 // API base URL
 const API_URL = 'http://localhost:3000';
 
-// Estado reativo
+// Estado reativo principal
 const filmes = ref([]);
 const series = ref([]);
 const minhaLista = ref({ filmes: [], series: [] });
@@ -460,53 +373,15 @@ const featuredItem = ref(null);
 const userId = ref(null);
 const toast = ref({ show: false, message: '', type: 'success' });
 const minhaListaCache = ref({ data: null, timestamp: null });
-const CACHE_DURATION = 1 * 60 * 1000; // Reduzido para 1 minuto
+const CACHE_DURATION = 1 * 60 * 1000; // 1 minuto
 const autoRefreshInterval = ref(null);
+
+// ===== SISTEMA DE AVALIAÇÃO CORRIGIDO =====
+const selectedRating = ref(0);
+const avaliacaoId = ref(null);
 
 // Debounce timer
 let debounceTimer = null;
-
-// Auto-refresh da lista a cada 2 minutos quando estiver na aba "lista"
-const startAutoRefresh = () => {
-  // Limpar intervalo anterior se existir
-  if (autoRefreshInterval.value) {
-    clearInterval(autoRefreshInterval.value);
-  }
-
-  autoRefreshInterval.value = setInterval(() => {
-    if (activeTab.value === 'lista' && !loadingMinhaLista.value && !refreshing.value) {
-      console.log('🔄 Auto-refresh da lista...');
-      loadMinhaLista(true);
-    }
-  }, 120000); // 2 minutos
-};
-
-// Parar auto-refresh
-const stopAutoRefresh = () => {
-  if (autoRefreshInterval.value) {
-    clearInterval(autoRefreshInterval.value);
-    autoRefreshInterval.value = null;
-  }
-};
-
-// Update timestamp display
-const updateTimeDisplay = ref(Date.now());
-setInterval(() => {
-  updateTimeDisplay.value = Date.now();
-}, 60000); // Update every minute
-
-// Função para forçar atualização completa (última alternativa)
-const forceFullRefresh = () => {
-  console.log('🔄 Forçando atualização completa...');
-
-  // Limpar todos os caches
-  minhaListaCache.value = { data: null, timestamp: null };
-
-  // Recarregar tudo
-  loadContent();
-
-  showToast('Dados atualizados', 'success');
-};
 
 // Função auxiliar para obter o token de autenticação
 const getAuthToken = () => {
@@ -565,6 +440,296 @@ const checkAuthentication = () => {
   return true;
 };
 
+// Validar se um ID é válido
+const isValidId = (id) => {
+  return id &&
+    id !== 'undefined' &&
+    id !== 'null' &&
+    id !== undefined &&
+    id !== null &&
+    typeof id === 'string' &&
+    id.length === 24 &&
+    /^[0-9a-fA-F]{24}$/.test(id);
+};
+
+// ===== FUNÇÕES DO SISTEMA DE AVALIAÇÃO =====
+
+// Funções auxiliares para obter dados do item selecionado
+const getCurrentUserId = () => {
+  return userId.value;
+};
+
+const getCurrentItemId = () => {
+  if (!selectedItem.value) return null;
+  return selectedItem.value._id;
+};
+
+const getCurrentItemType = () => {
+  if (!selectedItem.value) return null;
+  return selectedItem.value.type; // 'filme' ou 'serie'
+};
+
+// Função para obter URL da avaliação
+const getAvaliacaoUrl = () => {
+  const currentUserId = getCurrentUserId();
+  const currentItemId = getCurrentItemId();
+  const currentItemType = getCurrentItemType();
+  
+  if (!currentUserId || !currentItemId || !currentItemType) {
+    return null;
+  }
+  
+  if (currentItemType === 'filme') {
+    return `${API_URL}/avaliacao/usuario/${currentUserId}/filme/${currentItemId}`;
+  } else if (currentItemType === 'serie') {
+    return `${API_URL}/avaliacao/usuario/${currentUserId}/serie/${currentItemId}`;
+  }
+  return null;
+};
+
+// Buscar avaliação existente do usuário - CORRIGIDO
+const fetchUserRating = async () => {
+  if (!selectedItem.value) {
+    console.warn('⚠️ fetchUserRating: Nenhum item selecionado');
+    return;
+  }
+
+  const url = getAvaliacaoUrl();
+  if (!url) {
+    console.warn('⚠️ fetchUserRating: URL inválida para buscar avaliação');
+    selectedRating.value = 0;
+    avaliacaoId.value = null;
+    return;
+  }
+
+  try {
+    console.log(`📡 Buscando avaliação: ${url}`);
+    console.log(`📋 Item selecionado:`, {
+      nome: selectedItem.value.nome,
+      id: selectedItem.value._id,
+      type: selectedItem.value.type
+    });
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+
+    console.log(`📡 Resposta avaliação: ${response.status} ${response.statusText}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.nota) {
+        selectedRating.value = data.nota;
+        avaliacaoId.value = data._id;
+        console.log('✅ Avaliação encontrada:', {
+          nota: data.nota,
+          avaliacaoId: data._id
+        });
+      } else {
+        console.log('📝 Avaliação existe mas sem nota válida:', data);
+        selectedRating.value = 0;
+        avaliacaoId.value = null;
+      }
+    } else if (response.status === 404) {
+      console.log('📝 Nenhuma avaliação encontrada para este item');
+      selectedRating.value = 0;
+      avaliacaoId.value = null;
+    } else {
+      console.warn('⚠️ Erro ao buscar avaliação:', response.status);
+      const errorData = await response.json().catch(() => ({}));
+      console.warn('⚠️ Detalhes do erro:', errorData);
+      selectedRating.value = 0;
+      avaliacaoId.value = null;
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar avaliação:', error);
+    selectedRating.value = 0;
+    avaliacaoId.value = null;
+  }
+};
+
+// Salvar/atualizar avaliação
+const handleRating = async (rating) => {
+  const currentUserId = getCurrentUserId();
+  const currentItemId = getCurrentItemId();
+  const currentItemType = getCurrentItemType();
+  
+  // Validações
+  if (!currentUserId) {
+    console.error('❌ userId não encontrado');
+    showToast('Erro: Usuário não identificado', 'error');
+    return;
+  }
+
+  if (!currentItemId || !currentItemType) {
+    console.error('❌ Item não identificado');
+    showToast('Erro: Item não identificado', 'error');
+    return;
+  }
+
+  if (!rating || rating < 1 || rating > 5) {
+    console.error('❌ Nota inválida:', rating);
+    showToast('Erro: Nota deve ser entre 1 e 5', 'error');
+    return;
+  }
+
+  selectedRating.value = rating;
+
+  // Preparar payload baseado no tipo do item
+  const payload = {
+    userId: currentUserId,
+    nota: rating
+  };
+
+  if (currentItemType === 'filme') {
+    payload.filmeId = currentItemId;
+  } else if (currentItemType === 'serie') {
+    payload.serieId = currentItemId;
+  }
+
+  console.log('📡 Enviando avaliação:', payload);
+
+  try {
+    const response = await fetch(`${API_URL}/avaliacao`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      },
+      body: JSON.stringify(payload),
+    });
+
+    console.log(`📡 Resposta: ${response.status} ${response.statusText}`);
+
+    if (response.ok) {
+      const data = await response.json();
+      avaliacaoId.value = data.resultado._id;
+      console.log('✅ Avaliação salva com sucesso:', data);
+      showToast('Avaliação salva com sucesso!', 'success');
+    } else {
+      const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+      console.error('❌ Erro na resposta:', errorData);
+      showToast(`Erro: ${errorData.message}`, 'error');
+      selectedRating.value = 0; // Reset em caso de erro
+    }
+  } catch (error) {
+    console.error('❌ Erro ao salvar avaliação:', error);
+    showToast(`Erro ao salvar avaliação: ${error.message}`, 'error');
+    selectedRating.value = 0; // Reset em caso de erro
+  }
+};
+
+// Deletar avaliação
+const deleteRating = async () => {
+  if (!avaliacaoId.value) {
+    console.warn('⚠️ Nenhuma avaliação para deletar');
+    return;
+  }
+
+  try {
+    console.log(`🗑️ Deletando avaliação: ${avaliacaoId.value}`);
+    
+    const response = await fetch(`${API_URL}/avaliacao/${avaliacaoId.value}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getAuthToken()}`
+      }
+    });
+
+    console.log(`📡 Resposta delete: ${response.status} ${response.statusText}`);
+
+    if (response.ok) {
+      console.log('✅ Avaliação deletada com sucesso');
+      selectedRating.value = 0;
+      avaliacaoId.value = null;
+      showToast('Avaliação removida com sucesso!', 'success');
+    } else {
+      const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
+      console.error('❌ Erro ao deletar:', errorData);
+      showToast(`Erro ao remover avaliação: ${errorData.message}`, 'error');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao deletar avaliação:', error);
+    showToast(`Erro ao remover avaliação: ${error.message}`, 'error');
+  }
+};
+
+// Watch para carregar avaliação quando selectedItem mudar - CORRIGIDO
+watch(selectedItem, async (newItem, oldItem) => {
+  console.log('🔄 selectedItem mudou:', {
+    anterior: oldItem?.nome || 'nenhum',
+    novo: newItem?.nome || 'nenhum'
+  });
+
+  if (newItem) {
+    // Reset imediato
+    selectedRating.value = 0;
+    avaliacaoId.value = null;
+    
+    // Aguardar um pouco para garantir que o modal renderizou
+    await nextTick();
+    
+    // Pequeno delay adicional para garantir estabilidade
+    setTimeout(() => {
+      console.log('🔄 Iniciando busca de avaliação...');
+      fetchUserRating();
+    }, 200);
+  } else {
+    // Item foi fechado
+    selectedRating.value = 0;
+    avaliacaoId.value = null;
+  }
+}, { immediate: false });
+
+// ===== FUNÇÕES PRINCIPAIS DO SISTEMA =====
+
+// Auto-refresh da lista a cada 2 minutos quando estiver na aba "lista"
+const startAutoRefresh = () => {
+  // Limpar intervalo anterior se existir
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value);
+  }
+
+  autoRefreshInterval.value = setInterval(() => {
+    if (activeTab.value === 'lista' && !loadingMinhaLista.value && !refreshing.value) {
+      console.log('🔄 Auto-refresh da lista...');
+      loadMinhaLista(true);
+    }
+  }, 120000); // 2 minutos
+};
+
+// Parar auto-refresh
+const stopAutoRefresh = () => {
+  if (autoRefreshInterval.value) {
+    clearInterval(autoRefreshInterval.value);
+    autoRefreshInterval.value = null;
+  }
+};
+
+// Update timestamp display
+const updateTimeDisplay = ref(Date.now());
+setInterval(() => {
+  updateTimeDisplay.value = Date.now();
+}, 60000); // Update every minute
+
+// Função para forçar atualização completa (última alternativa)
+const forceFullRefresh = () => {
+  console.log('🔄 Forçando atualização completa...');
+
+  // Limpar todos os caches
+  minhaListaCache.value = { data: null, timestamp: null };
+
+  // Recarregar tudo
+  loadContent();
+
+  showToast('Dados atualizados', 'success');
+};
+
 // Verificar se item específico está carregando
 const isItemLoading = (itemId) => {
   return loadingItems.value.has(itemId);
@@ -584,7 +749,7 @@ const isCacheValid = () => {
   return Date.now() - minhaListaCache.value.timestamp < CACHE_DURATION;
 };
 
-// Carregar minha lista com cache inteligente
+// Carregar minha lista com cache inteligente - CORRIGIDO
 const loadMinhaLista = async (forceRefresh = false) => {
   if (!userId.value) {
     console.warn('⚠️ Tentativa de carregar lista sem userId');
@@ -601,6 +766,15 @@ const loadMinhaLista = async (forceRefresh = false) => {
   if (!forceRefresh && isCacheValid() && minhaListaCache.value.data) {
     console.log('📦 Usando cache para minha lista');
     minhaLista.value = minhaListaCache.value.data;
+    
+    // Log detalhado do cache
+    console.log('📋 Cache da lista:', {
+      filmesCount: minhaLista.value.filmes?.length || 0,
+      seriesCount: minhaLista.value.series?.length || 0,
+      filmes: minhaLista.value.filmes?.map(f => ({ id: f._id, nome: f.nome, type: f.type })) || [],
+      series: minhaLista.value.series?.map(s => ({ id: s._id, nome: s.nome, type: s.type })) || []
+    });
+    
     return;
   }
 
@@ -626,15 +800,40 @@ const loadMinhaLista = async (forceRefresh = false) => {
 
     if (response.ok) {
       const lista = await response.json();
+      
+      // Log da resposta bruta
+      console.log('📄 Resposta bruta da API:', lista);
+      
       const listaData = {
         filmes: lista.filmes || [],
         series: lista.series || []
       };
 
-      console.log('✅ Lista carregada:', {
+      // Garantir que todos os itens tenham o campo 'type' correto
+      listaData.filmes = listaData.filmes.map(filme => ({
+        ...filme,
+        type: 'filme'
+      }));
+      
+      listaData.series = listaData.series.map(serie => ({
+        ...serie,
+        type: 'serie'
+      }));
+
+      console.log('✅ Lista processada:', {
         filmes: listaData.filmes.length,
         series: listaData.series.length,
-        total: listaData.filmes.length + listaData.series.length
+        total: listaData.filmes.length + listaData.series.length,
+        filmesDetalhes: listaData.filmes.map(f => ({ 
+          id: f._id, 
+          nome: f.nome, 
+          type: f.type 
+        })),
+        seriesDetalhes: listaData.series.map(s => ({ 
+          id: s._id, 
+          nome: s.nome, 
+          type: s.type 
+        }))
       });
 
       minhaLista.value = listaData;
@@ -642,6 +841,10 @@ const loadMinhaLista = async (forceRefresh = false) => {
         data: listaData,
         timestamp: Date.now()
       };
+      
+      // Force re-render dos indicadores
+      await nextTick();
+      
     } else if (response.status === 404) {
       console.log('📝 Lista não existe, criando nova...');
       await criarLista();
@@ -715,15 +918,44 @@ const criarLista = async () => {
   }
 };
 
-// Verificar se um item está na minha lista
+// Verificar se um item está na minha lista - CORRIGIDO
 const isInMinhaLista = (item) => {
-  if (!item || !minhaLista.value) return false;
+  if (!item || !item._id || !minhaLista.value) {
+    console.log('❌ isInMinhaLista: dados inválidos', { item: !!item, itemId: item?._id, minhaLista: !!minhaLista.value });
+    return false;
+  }
+
+  // Log para debug (remover em produção)
+  console.log('🔍 Verificando se item está na lista:', {
+    itemId: item._id,
+    itemNome: item.nome,
+    itemType: item.type,
+    listaFilmes: minhaLista.value.filmes?.length || 0,
+    listaSeries: minhaLista.value.series?.length || 0
+  });
+
+  let isInList = false;
 
   if (item.type === 'filme') {
-    return minhaLista.value.filmes.some(filme => filme._id === item._id);
-  } else {
-    return minhaLista.value.series.some(serie => serie._id === item._id);
+    isInList = minhaLista.value.filmes && minhaLista.value.filmes.some(filme => {
+      const match = filme._id === item._id;
+      if (match) {
+        console.log('✅ Filme encontrado na lista:', filme.nome);
+      }
+      return match;
+    });
+  } else if (item.type === 'serie') {
+    isInList = minhaLista.value.series && minhaLista.value.series.some(serie => {
+      const match = serie._id === item._id;
+      if (match) {
+        console.log('✅ Série encontrada na lista:', serie.nome);
+      }
+      return match;
+    });
   }
+
+  console.log(`🎯 Item "${item.nome}" está na lista:`, isInList);
+  return isInList;
 };
 
 // Count de itens na lista
@@ -742,18 +974,6 @@ const lastUpdateText = computed(() => {
   if (diff < 3600000) return `Atualizado há ${Math.floor(diff / 60000)}min`;
   return `Atualizado há ${Math.floor(diff / 3600000)}h`;
 });
-
-// Validar se um ID é válido
-const isValidId = (id) => {
-  return id &&
-    id !== 'undefined' &&
-    id !== 'null' &&
-    id !== undefined &&
-    id !== null &&
-    typeof id === 'string' &&
-    id.length === 24 &&
-    /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 // ⭐ FUNÇÃO PRINCIPAL MODIFICADA - Adicionar/Remover item da minha lista com RELOAD
 const toggleMinhaLista = async (item) => {
@@ -983,12 +1203,26 @@ const filterByGenre = (genre) => {
   activeGenre.value = genre === activeGenre.value ? '' : genre;
 };
 
-const showDetails = (item) => {
+const showDetails = async (item) => {
+  console.log('🎬 Abrindo detalhes do item:', item.nome);
+  
   selectedItem.value = item;
+  
+  // Aguardar renderização do modal
+  await nextTick();
+  
+  // Buscar avaliação após modal estar pronto
+  setTimeout(() => {
+    fetchUserRating();
+  }, 300);
 };
 
 const closeDetails = () => {
+  console.log('❌ Fechando modal de detalhes');
   selectedItem.value = null;
+  // Reset avaliação quando fechar modal
+  selectedRating.value = 0;
+  avaliacaoId.value = null;
 };
 
 const formatDuration = (minutes) => {
@@ -1038,10 +1272,52 @@ const onImageError = (event) => {
 };
 
 // Carregar conteúdo ao montar
-onMounted(() => {
-  loadContent();
+onMounted(async () => {
+  await loadContent();
   startAutoRefresh();
+  
+  // Debug inicial (remover em produção)
+  setTimeout(() => {
+    debugListaState();
+  }, 2000);
 });
+
+// ===== FUNÇÃO DE DEBUG =====
+const debugListaState = () => {
+  console.log('🐛 DEBUG - Estado atual da lista:', {
+    minhaLista: minhaLista.value,
+    filmesNaLista: minhaLista.value.filmes?.map(f => ({ 
+      id: f._id, 
+      nome: f.nome, 
+      type: f.type 
+    })) || [],
+    seriesNaLista: minhaLista.value.series?.map(s => ({ 
+      id: s._id, 
+      nome: s.nome, 
+      type: s.type 
+    })) || [],
+    userId: userId.value,
+    activeTab: activeTab.value
+  });
+};
+
+// Função para testar primeiro item (chamar no console)
+window.testarPrimeiroItem = () => {
+  const primeiroFilme = minhaLista.value.filmes?.[0];
+  if (primeiroFilme) {
+    console.log('🧪 Testando primeiro filme:', {
+      filme: primeiroFilme,
+      estaInMinhaLista: isInMinhaLista(primeiroFilme)
+    });
+  } else {
+    console.log('❌ Nenhum filme na lista para testar');
+  }
+};
+
+// Função para debug no console
+window.debugNetflix = () => {
+  debugListaState();
+};
 
 // Cleanup ao desmontar
 onUnmounted(() => {
@@ -1072,38 +1348,60 @@ watch(activeTab, () => {
   position: relative;
 }
 
+/* ===== ESTILOS SISTEMA DE AVALIAÇÃO ===== */
+.rating-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #333;
+}
+
 .rating {
   display: flex;
-  flex-direction: row;
-  gap: 5px;
   align-items: center;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-.rating label {
-  font-size: 30px;
-  color: white;
+.star-label {
+  font-size: 28px;
+  color: #555;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
-.rating label.filled {
-  color: gold;
+.star-label:hover {
+  color: #ffd700;
+  transform: scale(1.1);
 }
 
-.rating label:hover,
-.rating label:hover~label {
-  transform: scale(1.2);
+.star-label.filled {
+  color: #ffd700;
 }
 
 .delete-button {
-  background: none;
+  background: rgba(220, 53, 69, 0.8);
+  color: white;
   border: none;
-  color: red;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
   cursor: pointer;
-  margin-left: 10px;
-  font-size: 14px;
+  margin-left: 16px;
+  transition: all 0.3s ease;
 }
 
+.delete-button:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 1);
+  transform: translateY(-1px);
+}
+
+.delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== RESTO DOS ESTILOS ORIGINAIS ===== */
 
 .netflix-bg-overlay {
   position: fixed;
@@ -2024,6 +2322,7 @@ watch(activeTab, () => {
 .details-actions {
   display: flex;
   gap: 16px;
+  margin-bottom: 20px;
 }
 
 .add-button {
@@ -2196,6 +2495,20 @@ watch(activeTab, () => {
     bottom: 80px;
     left: 20px;
     right: 20px;
+  }
+
+  .rating {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .star-label {
+    font-size: 24px;
+  }
+
+  .delete-button {
+    margin-left: 0;
+    margin-top: 8px;
   }
 }
 </style>

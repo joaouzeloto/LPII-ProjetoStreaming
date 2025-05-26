@@ -5,7 +5,7 @@ class AvaliacaoController {
   // Criar ou atualizar avaliação
   static async avaliar(req, res) {
     try {
-     
+      console.log('=== CRIAR/ATUALIZAR AVALIAÇÃO ===');
       const { userId, filmeId, serieId, nota } = req.body;
       if (!userId || (!filmeId && !serieId) || !nota) {
         return res.status(400).json({ message: 'userId, filmeId/serieId e nota são obrigatórios' });

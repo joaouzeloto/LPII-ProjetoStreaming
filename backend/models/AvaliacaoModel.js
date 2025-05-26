@@ -47,6 +47,11 @@ class Avaliacao {
       ]
     });
   }
+ 
+  static async findOne(filtro) {
+    return await AvaliacaoModel.findOne(filtro);
+  }
+
 
   // Método para buscar avaliação por filme
   static async searchByFilme(filmeId) {
