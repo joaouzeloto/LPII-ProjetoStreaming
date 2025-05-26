@@ -129,6 +129,11 @@
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
               </button>
+              <button v-if="serie.caminhoSerie" class="action-button play" @click.stop="playSerie(serie)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
             </div>
           </div>
           <div class="series-info">
@@ -138,6 +143,9 @@
               <span class="series-duration">{{ serie.temporadas }} Temp</span>
             </div>
             <span class="series-genre">{{ serie.genero }}</span>
+            <div v-if="serie.caminhoSerie" class="series-status">
+              <span class="video-available">📺 Vídeo Disponível</span>
+            </div>
           </div>
         </div>
       </div>
@@ -184,6 +192,14 @@
               <span class="seasons-badge">{{ selectedSerie.temporadas }} Temporadas</span>
               <span class="episodes-badge">{{ selectedSerie.episodios }} Episódios</span>
             </div>
+            <div v-if="selectedSerie.caminhoSerie" class="play-section">
+              <button class="play-button" @click="playSerie(selectedSerie)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Assistir
+              </button>
+            </div>
           </div>
         </div>
         
@@ -207,6 +223,28 @@
             </button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal for video player -->
+    <div v-if="showVideoPlayer" class="modal-overlay" @click="closeVideoPlayer">
+      <div class="modal-content video-player-modal" @click.stop>
+        <button class="modal-close" @click="closeVideoPlayer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3 class="video-title">{{ playingSerie?.nome }}</h3>
+        <video 
+          v-if="playingSerie?.caminhoSerie" 
+          :src="'../uploads/' + playingSerie.caminhoSerie"
+          controls
+          width="100%"
+          height="400"
+        >
+          Seu navegador não suporta o elemento de vídeo.
+        </video>
       </div>
     </div>
     
@@ -325,28 +363,59 @@
               <input 
                 type="file" 
                 id="imagem" 
-                ref="fileInput"
-                @change="handleFileChange" 
+                ref="imageInput"
+                @change="handleImageChange" 
                 accept="image/*"
               />
               <label for="imagem" class="file-input-label">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="17 8 12 3 7 8"></polyline>
-                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
                 </svg>
-                {{ selectedFileName || 'Escolher arquivo' }}
+                {{ selectedImageName || 'Escolher imagem' }}
               </label>
             </div>
             <div v-if="imagePreview" class="image-preview">
               <img :src="imagePreview" alt="Preview" />
             </div>
           </div>
+
+          <div class="form-group">
+            <label for="serie">Arquivo da Série (Vídeo)</label>
+            <div class="file-input-container">
+              <input 
+                type="file" 
+                id="serie" 
+                ref="videoInput"
+                @change="handleVideoChange" 
+                accept="video/*"
+              />
+              <label for="serie" class="file-input-label">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
+                </svg>
+                {{ selectedVideoName || 'Escolher vídeo' }}
+              </label>
+            </div>
+            <div v-if="videoPreview" class="video-preview">
+              <video :src="videoPreview" controls width="100%" height="200">
+                Seu navegador não suporta o elemento de vídeo.
+              </video>
+            </div>
+            <div v-if="uploadProgress > 0 && uploadProgress < 100" class="upload-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{width: uploadProgress + '%'}"></div>
+              </div>
+              <span class="progress-text">{{ uploadProgress }}% carregado</span>
+            </div>
+          </div>
           
           <div class="form-actions">
             <button type="button" class="cancel-button" @click="closeModal">Cancelar</button>
-            <button type="submit" class="save-button">
-              {{ editingSerie ? 'Atualizar' : 'Salvar' }}
+            <button type="submit" class="save-button" :disabled="uploading">
+              {{ uploading ? 'Salvando...' : (editingSerie ? 'Atualizar' : 'Salvar') }}
             </button>
           </div>
         </form>
@@ -402,7 +471,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 
-// API base URL - Mantendo exatamente igual ao original
+// API base URL
 const API_URL = 'http://localhost:3000';
 
 // Estado reativo
@@ -421,15 +490,21 @@ const formSerie = ref({
   anoLancamento: new Date().getFullYear(),
   duracao: '',
   temporadas: 1,
-  episodios: 1,
-  imagemPath: null
+  episodios: 1
 });
 const showDeleteConfirm = ref(false);
 const deleteSerie = ref(null);
 const imagePreview = ref(null);
-const selectedFileName = ref('');
-const selectedFile = ref(null);
+const videoPreview = ref(null);
+const selectedImageName = ref('');
+const selectedVideoName = ref('');
+const selectedImageFile = ref(null);
+const selectedVideoFile = ref(null);
 const toasts = ref([]);
+const uploading = ref(false);
+const uploadProgress = ref(0);
+const showVideoPlayer = ref(false);
+const playingSerie = ref(null);
 
 // Função auxiliar para obter o token de autenticação
 const getAuthToken = () => {
@@ -452,7 +527,6 @@ const loadSeries = async () => {
   error.value = null;
   
   try {
-    // Mantendo a URL exatamente igual ao original
     const token = getAuthToken();
     const response = await fetch(`${API_URL}/series`, {
       method: 'GET',
@@ -535,6 +609,21 @@ const selectSerie = (serie) => {
   selectedSerie.value = serie;
 };
 
+const playSerie = (serie) => {
+  if (serie.caminhoSerie) {
+    playingSerie.value = serie;
+    showVideoPlayer.value = true;
+    selectedSerie.value = null;
+  } else {
+    showToast('Arquivo de vídeo não disponível para esta série.', 'error');
+  }
+};
+
+const closeVideoPlayer = () => {
+  showVideoPlayer.value = false;
+  playingSerie.value = null;
+};
+
 const closeModal = () => {
   selectedSerie.value = null;
   showAddSeries.value = false;
@@ -558,12 +647,14 @@ const editSerie = (serie) => {
     anoLancamento: serie.anoLancamento,
     duracao: serie.duracao,
     temporadas: serie.temporadas,
-    episodios: serie.episodios,
-    imagemPath: serie.imagemPath
+    episodios: serie.episodios
   };
   
   if (serie.caminho) {
     imagePreview.value = getImageUrl(serie.caminho);
+  }
+  if (serie.caminhoSerie) {
+    videoPreview.value = getVideoUrl(serie.caminhoSerie);
   }
 };
 
@@ -575,25 +666,31 @@ const resetForm = () => {
     anoLancamento: new Date().getFullYear(),
     duracao: '',
     temporadas: 1,
-    episodios: 1,
-    imagemPath: null
+    episodios: 1
   };
   
   imagePreview.value = null;
-  selectedFileName.value = '';
-  selectedFile.value = null;
+  videoPreview.value = null;
+  selectedImageName.value = '';
+  selectedVideoName.value = '';
+  selectedImageFile.value = null;
+  selectedVideoFile.value = null;
+  uploadProgress.value = 0;
   
   if (document.getElementById('imagem')) {
     document.getElementById('imagem').value = '';
   }
+  if (document.getElementById('serie')) {
+    document.getElementById('serie').value = '';
+  }
 };
 
-const handleFileChange = (event) => {
+const handleImageChange = (event) => {
   const file = event.target.files[0];
   if (!file) return;
   
-  selectedFile.value = file;
-  selectedFileName.value = file.name;
+  selectedImageFile.value = file;
+  selectedImageName.value = file.name;
   
   // Criar preview da imagem
   const reader = new FileReader();
@@ -603,10 +700,26 @@ const handleFileChange = (event) => {
   reader.readAsDataURL(file);
 };
 
+const handleVideoChange = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  selectedVideoFile.value = file;
+  selectedVideoName.value = file.name;
+  
+  // Criar preview do vídeo
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    videoPreview.value = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
 const saveSerie = async () => {
   if (!checkAuthentication()) return;
   
-  loading.value = true;
+  uploading.value = true;
+  uploadProgress.value = 0;
   error.value = null;
   
   try {
@@ -619,8 +732,12 @@ const saveSerie = async () => {
     formData.append('temporadas', formSerie.value.temporadas.toString());
     formData.append('episodios', formSerie.value.episodios.toString());
     
-    if (selectedFile.value) {
-      formData.append('imagem', selectedFile.value);
+    if (selectedImageFile.value) {
+      formData.append('imagem', selectedImageFile.value);
+    }
+    
+    if (selectedVideoFile.value) {
+      formData.append('serie', selectedVideoFile.value);
     }
     
     // Log para depuração
@@ -631,8 +748,15 @@ const saveSerie = async () => {
     let response;
     const token = getAuthToken();
     
+    // Simular progresso de upload
+    const progressInterval = setInterval(() => {
+      if (uploadProgress.value < 90) {
+        uploadProgress.value += 10;
+      }
+    }, 200);
+    
     if (editingSerie.value) {
-      // Atualizar série existente - respeitando o formato exato do código original
+      // Atualizar série existente
       response = await fetch(`${API_URL}/series/${editingSerie.value._id}`, {
         method: 'PUT',
         headers: {
@@ -651,7 +775,7 @@ const saveSerie = async () => {
       await response.json();
       showToast('Série atualizada com sucesso!', 'success');
     } else {
-      // Criar nova série - respeitando o formato exato do código original
+      // Criar nova série
       response = await fetch(`${API_URL}/series`, {
         method: 'POST',
         headers: {
@@ -671,6 +795,9 @@ const saveSerie = async () => {
       showToast('Série adicionada com sucesso!', 'success');
     }
     
+    clearInterval(progressInterval);
+    uploadProgress.value = 100;
+    
     // Recarregar a lista de séries
     await loadSeries();
     
@@ -681,7 +808,8 @@ const saveSerie = async () => {
     error.value = err.message || 'Não foi possível salvar a série. Por favor, tente novamente.';
     showToast('Erro ao salvar a série: ' + err.message, 'error');
   } finally {
-    loading.value = false;
+    uploading.value = false;
+    uploadProgress.value = 0;
   }
 };
 
@@ -755,13 +883,21 @@ const formatDuration = (minutes) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
   
-  // Verificar se a imagem já é uma URL completa
   if (imagePath.startsWith('http')) {
     return imagePath;
   }
   
-  // Caso contrário, construir a URL com base no caminho da API
   return `../uploads/${imagePath}`;
+};
+
+const getVideoUrl = (videoPath) => {
+  if (!videoPath) return '';
+  
+  if (videoPath.startsWith('http')) {
+    return videoPath;
+  }
+  
+  return `../uploads/${videoPath}`;
 };
 
 const showToast = (message, type = 'success') => {
@@ -1005,23 +1141,12 @@ watch(activeFilter, () => {
   background-color: rgba(0, 0, 255, 0.7);
 }
 
-.action-button.add-first {
-  background-color: #e50914;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  padding: 12px 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.action-button.delete:hover {
+  background-color: rgba(229, 9, 20, 0.7);
 }
 
-.action-button.add-first:hover {
-  background-color: #f40612;
+.action-button.play:hover {
+  background-color: rgba(46, 204, 113, 0.7);
 }
 
 .series-info {
@@ -1054,6 +1179,41 @@ watch(activeFilter, () => {
   background-color: rgba(0, 113, 235, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
+}
+
+.series-status {
+  margin-top: 8px;
+}
+
+.video-available {
+  font-size: 12px;
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.play-section {
+  margin-top: 20px;
+}
+
+.play-button {
+  background-color: #2ecc71;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s;
+}
+
+.play-button:hover {
+  background-color: #27ae60;
 }
 
 .add-first-button {
@@ -1145,6 +1305,19 @@ watch(activeFilter, () => {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+}
+
+.video-player-modal {
+  max-width: 1200px;
+  background-color: #000;
+}
+
+.video-title {
+  color: #fff;
+  margin: 0 0 20px;
+  padding: 20px 20px 0;
+  font-size: 24px;
+  font-weight: 600;
 }
 
 .modal-close {
@@ -1411,6 +1584,37 @@ watch(activeFilter, () => {
   object-fit: contain;
 }
 
+.video-preview {
+  margin-top: 16px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.upload-progress {
+  margin-top: 10px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #333;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #e50914;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 4px;
+  display: block;
+}
+
 .form-actions {
   display: flex;
   gap: 16px;
@@ -1447,8 +1651,13 @@ watch(activeFilter, () => {
   transition: background-color 0.2s;
 }
 
-.save-button:hover {
+.save-button:hover:not(:disabled) {
   background-color: #f40612;
+}
+
+.save-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
 }
 
 /* Confirmation Dialog */

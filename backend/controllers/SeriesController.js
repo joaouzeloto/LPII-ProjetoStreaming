@@ -8,7 +8,10 @@ class SeriesController {
             const { nome, genero, sinopse, anoLancamento, duracao, temporadas, episodios } = req.body;
 
             // Obtém o caminho da imagem do upload (se houver)
-            const imagemPath = req.file ? req.file.filename : null;
+            const imagemPath = req.files && req.files['imagem'] ? req.files['imagem'][0].filename : null;
+            
+            // Obtém o caminho do arquivo da série do upload (se houver)
+            const seriePath = req.files && req.files['serie'] ? req.files['serie'][0].filename : null;
 
             const series = new Series(
                 nome,
@@ -16,7 +19,8 @@ class SeriesController {
                 sinopse,
                 anoLancamento,
                 duracao,
-                imagemPath, // Adicionar o caminho da imagem
+                imagemPath, // Caminho da imagem
+                seriePath, // Caminho do arquivo da série
                 temporadas,
                 episodios
             );
@@ -44,7 +48,10 @@ class SeriesController {
             const { nome, genero, sinopse, anoLancamento, duracao, temporadas, episodios } = req.body;
 
             // Obtém o caminho da imagem do upload (se houver)
-            const imagemPath = req.file ? req.file.filename : null;
+            const imagemPath = req.files && req.files['imagem'] ? req.files['imagem'][0].filename : null;
+            
+            // Obtém o caminho do arquivo da série do upload (se houver)
+            const seriePath = req.files && req.files['serie'] ? req.files['serie'][0].filename : null;
 
             const series = new Series(
                 nome,
@@ -52,7 +59,8 @@ class SeriesController {
                 sinopse,
                 anoLancamento,
                 duracao,
-                imagemPath, // Adicionar o caminho da imagem
+                imagemPath, // Caminho da imagem
+                seriePath, // Caminho do arquivo da série
                 temporadas,
                 episodios
             );
@@ -102,7 +110,7 @@ class SeriesController {
             res.status(500).send('Erro interno');
         }
     }
-    
+
 }
 
 export default SeriesController;

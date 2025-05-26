@@ -3,7 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import FilmesController from '../controllers/FilmesController.js';
 import __dirname from '../utils/pathUtils.js';
-import  {checarPermissao}  from '../middlewares/authMiddleware.js';
+import {checarPermissao} from '../middlewares/authMiddleware.js';
 
 // Configuração do Multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -22,7 +22,28 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // Limite de 5MB
+    fileSize: 500 * 1024 * 1024 // Limite de 500MB para arquivos de vídeo
+  },
+  fileFilter: function(req, file, cb) {
+    // Aceitar imagens para o campo 'imagem'
+    if (file.fieldname === 'imagem') {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Apenas arquivos de imagem são permitidos para o campo imagem'), false);
+      }
+    }
+    // Aceitar vídeos para o campo 'filme'
+    else if (file.fieldname === 'filme') {
+      if (file.mimetype.startsWith('video/') || file.mimetype === 'application/octet-stream') {
+        cb(null, true);
+      } else {
+        cb(new Error('Apenas arquivos de vídeo são permitidos para o campo filme'), false);
+      }
+    }
+    else {
+      cb(new Error('Campo de arquivo não reconhecido'), false);
+    }
   }
 });
 
@@ -31,14 +52,20 @@ const routerFilme = express.Router();
 // Servir os arquivos estáticos da pasta uploads
 routerFilme.use('/uploads', express.static(path.join(__dirname, '../ember/uploads')));
 
+// Configuração para aceitar múltiplos campos de arquivo
+const uploadFields = upload.fields([
+  { name: 'imagem', maxCount: 1 },
+  { name: 'filme', maxCount: 1 }
+]);
+
 // Rotas
-routerFilme.get('/', checarPermissao,FilmesController.visualizeFilmes);
-routerFilme.post('/', upload.single('imagem'), checarPermissao,FilmesController.createFilme);
-routerFilme.put('/:id', upload.single('imagem'), checarPermissao,FilmesController.updateFilme);
-routerFilme.delete('/:id', checarPermissao,FilmesController.deleteFilme);
-routerFilme.get('/:id', checarPermissao,FilmesController.visualizeFilmeById);
-routerFilme.get('/search/:nome', checarPermissao,FilmesController.searchFilmeByName);
-routerFilme.get('/genre/:genero', checarPermissao,FilmesController.searchFilmeByGenre);
-routerFilme.get('/year/:anoLancamento', checarPermissao,FilmesController.searchFilmeByReleaseYear);
+routerFilme.get('/', checarPermissao, FilmesController.visualizeFilmes);
+routerFilme.post('/', uploadFields, checarPermissao, FilmesController.createFilme);
+routerFilme.put('/:id', uploadFields, checarPermissao, FilmesController.updateFilme);
+routerFilme.delete('/:id', checarPermissao, FilmesController.deleteFilme);
+routerFilme.get('/:id', checarPermissao, FilmesController.visualizeFilmeById);
+routerFilme.get('/search/:nome', checarPermissao, FilmesController.searchFilmeByName);
+routerFilme.get('/genre/:genero', checarPermissao, FilmesController.searchFilmeByGenre);
+routerFilme.get('/year/:anoLancamento', checarPermissao, FilmesController.searchFilmeByReleaseYear);
 
 export default routerFilme;

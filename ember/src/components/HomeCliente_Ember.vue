@@ -58,10 +58,19 @@
           </div>
           <p class="featured-synopsis">{{ featuredItem.sinopse }}</p>
           <div class="featured-actions">
-            <button class="play-button smooth-btn" @click="showDetails(featuredItem)">
+            <button v-if="hasVideo(featuredItem)" class="play-button smooth-btn" @click="playItem(featuredItem)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
+              </svg>
+              Assistir Agora
+            </button>
+            <button v-else class="details-button smooth-btn" @click="showDetails(featuredItem)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
               </svg>
               Ver detalhes
             </button>
@@ -197,25 +206,41 @@
               <div class="content-badge" v-if="item.type">
                 {{ item.type === 'filme' ? 'Filme' : 'Série' }}
               </div>
-              <!-- Indicador de item na lista - CORRIGIDO -->
+              <!-- Indicador de vídeo disponível -->
+              <div v-if="hasVideo(item)" class="video-indicator">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </div>
+              <!-- Indicador de item na lista -->
               <div v-if="isInMinhaLista(item)" class="list-indicator" :key="`indicator-${item._id}`">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                   stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
               </div>
-              <!-- Quick action button -->
-              <button v-if="activeTab !== 'lista'" class="quick-add-btn smooth-btn"
-                :class="{ 'in-list': isInMinhaLista(item), 'loading': isItemLoading(item._id) }"
-                @click.stop="toggleMinhaLista(item)" :disabled="isItemLoading(item._id)">
-                <svg v-if="!isItemLoading(item._id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round">
-                  <line v-if="!isInMinhaLista(item)" x1="12" y1="5" x2="12" y2="19"></line>
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                <div v-else class="btn-spinner-small"></div>
-              </button>
+              <!-- Quick action buttons -->
+              <div class="quick-actions">
+                <button v-if="hasVideo(item)" class="quick-play-btn smooth-btn"
+                  @click.stop="playItem(item)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                  </svg>
+                </button>
+                <button v-if="activeTab !== 'lista'" class="quick-add-btn smooth-btn"
+                  :class="{ 'in-list': isInMinhaLista(item), 'loading': isItemLoading(item._id) }"
+                  @click.stop="toggleMinhaLista(item)" :disabled="isItemLoading(item._id)">
+                  <svg v-if="!isItemLoading(item._id)" xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round">
+                    <line v-if="!isInMinhaLista(item)" x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  <div v-else class="btn-spinner-small"></div>
+                </button>
+              </div>
             </div>
             <div class="content-info">
               <h3 class="content-title">{{ item.nome }}</h3>
@@ -226,11 +251,44 @@
                 <span v-if="item.temporadas" class="content-seasons">{{ item.temporadas }} Temp</span>
               </div>
               <span class="content-genre">{{ item.genero }}</span>
+              <!-- Status de vídeo -->
+              <div v-if="hasVideo(item)" class="video-status">
+                <span class="video-available">
+                  {{ item.type === 'filme' ? '🎬' : '📺' }} Vídeo Disponível
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </section>
     </main>
+
+    <!-- Video Player Modal -->
+    <div v-if="showVideoPlayer" class="modal-overlay" @click="closeVideoPlayer">
+      <div class="modal-content video-player-modal" @click.stop>
+        <button class="modal-close smooth-btn" @click="closeVideoPlayer">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+        <h3 class="video-title">{{ playingItem?.nome }}</h3>
+        <video 
+          v-if="playingItem && getVideoPath(playingItem)" 
+          :src="getVideoPath(playingItem)"
+          controls
+          width="100%"
+          height="400"
+          autoplay
+        >
+          Seu navegador não suporta o elemento de vídeo.
+        </video>
+        <div v-else class="video-error">
+          <p>Arquivo de vídeo não encontrado ou formato não suportado.</p>
+        </div>
+      </div>
+    </div>
 
     <!-- Details Modal -->
     <div v-if="selectedItem" class="modal-overlay" @click="closeDetails">
@@ -275,6 +333,16 @@
               <span class="seasons-badge">{{ selectedItem.temporadas }} Temporadas</span>
               <span v-if="selectedItem.episodios" class="episodes-badge">{{ selectedItem.episodios }} Episódios</span>
             </div>
+            <!-- Play section no modal de detalhes -->
+            <div v-if="hasVideo(selectedItem)" class="play-section">
+              <button class="play-button smooth-btn" @click="playItem(selectedItem)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Assistir
+              </button>
+            </div>
           </div>
         </div>
 
@@ -283,12 +351,12 @@
           <p class="details-synopsis">{{ selectedItem.sinopse }}</p>
 
           <div class="details-actions">
-            <button class="play-button smooth-btn">
+            <button v-if="!hasVideo(selectedItem)" class="play-button smooth-btn disabled" disabled>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="5 3 19 12 5 21 5 3"></polygon>
               </svg>
-              Assistir agora
+              Vídeo não disponível
             </button>
             <button class="add-button smooth-btn"
               :class="{ 'in-list': isInMinhaLista(selectedItem), 'loading': isItemLoading(selectedItem._id) }"
@@ -306,7 +374,7 @@
             </button>
           </div>
 
-          <!-- Sistema de Avaliação Corrigido -->
+          <!-- Sistema de Avaliação -->
           <div class="rating-section">
             <h3 class="section-title">Avaliação</h3>
             <div class="rating">
@@ -376,12 +444,86 @@ const minhaListaCache = ref({ data: null, timestamp: null });
 const CACHE_DURATION = 1 * 60 * 1000; // 1 minuto
 const autoRefreshInterval = ref(null);
 
-// ===== SISTEMA DE AVALIAÇÃO CORRIGIDO =====
+// ===== SISTEMA DE PLAYER DE VÍDEO =====
+const showVideoPlayer = ref(false);
+const playingItem = ref(null);
+
+// ===== SISTEMA DE AVALIAÇÃO =====
 const selectedRating = ref(0);
 const avaliacaoId = ref(null);
 
 // Debounce timer
 let debounceTimer = null;
+
+// ===== FUNÇÕES DO PLAYER DE VÍDEO =====
+
+// Verificar se um item tem vídeo disponível
+const hasVideo = (item) => {
+  if (!item) return false;
+  
+  // Para filmes: verificar caminhoFilme
+  if (item.type === 'filme') {
+    return !!(item.caminhoFilme);
+  }
+  
+  // Para séries: verificar caminhoSerie
+  if (item.type === 'serie') {
+    return !!(item.caminhoSerie);
+  }
+  
+  return false;
+};
+
+// Obter caminho do vídeo
+const getVideoPath = (item) => {
+  if (!item) return '';
+  
+  let videoPath = '';
+  
+  if (item.type === 'filme' && item.caminhoFilme) {
+    videoPath = item.caminhoFilme;
+  } else if (item.type === 'serie' && item.caminhoSerie) {
+    videoPath = item.caminhoSerie;
+  }
+  
+  if (!videoPath) return '';
+  
+  // Se já é uma URL completa, retornar como está
+  if (videoPath.startsWith('http')) {
+    return videoPath;
+  }
+  
+  // Caso contrário, construir a URL
+  return `../uploads/${videoPath}`;
+};
+
+// Reproduzir item
+const playItem = (item) => {
+  if (!hasVideo(item)) {
+    showToast('Arquivo de vídeo não disponível para este conteúdo.', 'error');
+    return;
+  }
+  
+  console.log('🎬 Reproduzindo:', {
+    nome: item.nome,
+    type: item.type,
+    caminhoVideo: getVideoPath(item)
+  });
+  
+  playingItem.value = item;
+  showVideoPlayer.value = true;
+  
+  // Fechar modal de detalhes se estiver aberto
+  if (selectedItem.value) {
+    selectedItem.value = null;
+  }
+};
+
+// Fechar player de vídeo
+const closeVideoPlayer = () => {
+  showVideoPlayer.value = false;
+  playingItem.value = null;
+};
 
 // Função auxiliar para obter o token de autenticação
 const getAuthToken = () => {
@@ -487,7 +629,7 @@ const getAvaliacaoUrl = () => {
   return null;
 };
 
-// Buscar avaliação existente do usuário - CORRIGIDO
+// Buscar avaliação existente do usuário
 const fetchUserRating = async () => {
   if (!selectedItem.value) {
     console.warn('⚠️ fetchUserRating: Nenhum item selecionado');
@@ -504,11 +646,6 @@ const fetchUserRating = async () => {
 
   try {
     console.log(`📡 Buscando avaliação: ${url}`);
-    console.log(`📋 Item selecionado:`, {
-      nome: selectedItem.value.nome,
-      id: selectedItem.value._id,
-      type: selectedItem.value.type
-    });
     
     const response = await fetch(url, {
       method: 'GET',
@@ -540,8 +677,6 @@ const fetchUserRating = async () => {
       avaliacaoId.value = null;
     } else {
       console.warn('⚠️ Erro ao buscar avaliação:', response.status);
-      const errorData = await response.json().catch(() => ({}));
-      console.warn('⚠️ Detalhes do erro:', errorData);
       selectedRating.value = 0;
       avaliacaoId.value = null;
     }
@@ -659,7 +794,7 @@ const deleteRating = async () => {
   }
 };
 
-// Watch para carregar avaliação quando selectedItem mudar - CORRIGIDO
+// Watch para carregar avaliação quando selectedItem mudar
 watch(selectedItem, async (newItem, oldItem) => {
   console.log('🔄 selectedItem mudou:', {
     anterior: oldItem?.nome || 'nenhum',
@@ -749,7 +884,7 @@ const isCacheValid = () => {
   return Date.now() - minhaListaCache.value.timestamp < CACHE_DURATION;
 };
 
-// Carregar minha lista com cache inteligente - CORRIGIDO
+// Carregar minha lista com cache inteligente
 const loadMinhaLista = async (forceRefresh = false) => {
   if (!userId.value) {
     console.warn('⚠️ Tentativa de carregar lista sem userId');
@@ -766,15 +901,6 @@ const loadMinhaLista = async (forceRefresh = false) => {
   if (!forceRefresh && isCacheValid() && minhaListaCache.value.data) {
     console.log('📦 Usando cache para minha lista');
     minhaLista.value = minhaListaCache.value.data;
-    
-    // Log detalhado do cache
-    console.log('📋 Cache da lista:', {
-      filmesCount: minhaLista.value.filmes?.length || 0,
-      seriesCount: minhaLista.value.series?.length || 0,
-      filmes: minhaLista.value.filmes?.map(f => ({ id: f._id, nome: f.nome, type: f.type })) || [],
-      series: minhaLista.value.series?.map(s => ({ id: s._id, nome: s.nome, type: s.type })) || []
-    });
-    
     return;
   }
 
@@ -801,9 +927,6 @@ const loadMinhaLista = async (forceRefresh = false) => {
     if (response.ok) {
       const lista = await response.json();
       
-      // Log da resposta bruta
-      console.log('📄 Resposta bruta da API:', lista);
-      
       const listaData = {
         filmes: lista.filmes || [],
         series: lista.series || []
@@ -823,17 +946,7 @@ const loadMinhaLista = async (forceRefresh = false) => {
       console.log('✅ Lista processada:', {
         filmes: listaData.filmes.length,
         series: listaData.series.length,
-        total: listaData.filmes.length + listaData.series.length,
-        filmesDetalhes: listaData.filmes.map(f => ({ 
-          id: f._id, 
-          nome: f.nome, 
-          type: f.type 
-        })),
-        seriesDetalhes: listaData.series.map(s => ({ 
-          id: s._id, 
-          nome: s.nome, 
-          type: s.type 
-        }))
+        total: listaData.filmes.length + listaData.series.length
       });
 
       minhaLista.value = listaData;
@@ -918,43 +1031,20 @@ const criarLista = async () => {
   }
 };
 
-// Verificar se um item está na minha lista - CORRIGIDO
+// Verificar se um item está na minha lista
 const isInMinhaLista = (item) => {
   if (!item || !item._id || !minhaLista.value) {
-    console.log('❌ isInMinhaLista: dados inválidos', { item: !!item, itemId: item?._id, minhaLista: !!minhaLista.value });
     return false;
   }
-
-  // Log para debug (remover em produção)
-  console.log('🔍 Verificando se item está na lista:', {
-    itemId: item._id,
-    itemNome: item.nome,
-    itemType: item.type,
-    listaFilmes: minhaLista.value.filmes?.length || 0,
-    listaSeries: minhaLista.value.series?.length || 0
-  });
 
   let isInList = false;
 
   if (item.type === 'filme') {
-    isInList = minhaLista.value.filmes && minhaLista.value.filmes.some(filme => {
-      const match = filme._id === item._id;
-      if (match) {
-        console.log('✅ Filme encontrado na lista:', filme.nome);
-      }
-      return match;
-    });
+    isInList = minhaLista.value.filmes && minhaLista.value.filmes.some(filme => filme._id === item._id);
   } else if (item.type === 'serie') {
-    isInList = minhaLista.value.series && minhaLista.value.series.some(serie => {
-      const match = serie._id === item._id;
-      if (match) {
-        console.log('✅ Série encontrada na lista:', serie.nome);
-      }
-      return match;
-    });
+    isInList = minhaLista.value.series && minhaLista.value.series.some(serie => serie._id === item._id);
   }
 
-  console.log(`🎯 Item "${item.nome}" está na lista:`, isInList);
   return isInList;
 };
 
@@ -975,7 +1065,7 @@ const lastUpdateText = computed(() => {
   return `Atualizado há ${Math.floor(diff / 3600000)}h`;
 });
 
-// ⭐ FUNÇÃO PRINCIPAL MODIFICADA - Adicionar/Remover item da minha lista com RELOAD
+// Adicionar/Remover item da minha lista com RELOAD
 const toggleMinhaLista = async (item) => {
   if (!userId.value || isItemLoading(item._id)) return;
 
@@ -1051,7 +1141,7 @@ const toggleMinhaLista = async (item) => {
           : `"${item.nome}" adicionado à sua lista`;
         showToast(successMessage, 'success');
 
-        // 🔄 RELOAD DA PÁGINA após operação bem-sucedida
+        // RELOAD DA PÁGINA após operação bem-sucedida
         setTimeout(() => {
           console.log('🔄 Recarregando página...');
           window.location.reload();
@@ -1275,49 +1365,7 @@ const onImageError = (event) => {
 onMounted(async () => {
   await loadContent();
   startAutoRefresh();
-  
-  // Debug inicial (remover em produção)
-  setTimeout(() => {
-    debugListaState();
-  }, 2000);
 });
-
-// ===== FUNÇÃO DE DEBUG =====
-const debugListaState = () => {
-  console.log('🐛 DEBUG - Estado atual da lista:', {
-    minhaLista: minhaLista.value,
-    filmesNaLista: minhaLista.value.filmes?.map(f => ({ 
-      id: f._id, 
-      nome: f.nome, 
-      type: f.type 
-    })) || [],
-    seriesNaLista: minhaLista.value.series?.map(s => ({ 
-      id: s._id, 
-      nome: s.nome, 
-      type: s.type 
-    })) || [],
-    userId: userId.value,
-    activeTab: activeTab.value
-  });
-};
-
-// Função para testar primeiro item (chamar no console)
-window.testarPrimeiroItem = () => {
-  const primeiroFilme = minhaLista.value.filmes?.[0];
-  if (primeiroFilme) {
-    console.log('🧪 Testando primeiro filme:', {
-      filme: primeiroFilme,
-      estaInMinhaLista: isInMinhaLista(primeiroFilme)
-    });
-  } else {
-    console.log('❌ Nenhum filme na lista para testar');
-  }
-};
-
-// Função para debug no console
-window.debugNetflix = () => {
-  debugListaState();
-};
 
 // Cleanup ao desmontar
 onUnmounted(() => {
@@ -1399,6 +1447,152 @@ watch(activeTab, () => {
 .delete-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== ESTILOS DO PLAYER DE VÍDEO ===== */
+.video-player-modal {
+  max-width: 1200px;
+  background-color: #000;
+}
+
+.video-title {
+  color: #fff;
+  margin: 0 0 20px;
+  padding: 20px 20px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.video-error {
+  padding: 40px;
+  text-align: center;
+  color: #aaa;
+}
+
+.video-indicator {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(46, 204, 113, 0.9);
+  color: #fff;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  backdrop-filter: blur(5px);
+  animation: bounceIn 0.5s ease;
+}
+
+.video-status {
+  margin-top: 8px;
+}
+
+.video-available {
+  font-size: 12px;
+  color: #2ecc71;
+  background-color: rgba(46, 204, 113, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.quick-actions {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.content-card:hover .quick-actions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.quick-play-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: rgba(46, 204, 113, 0.9);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.quick-play-btn:hover {
+  background-color: rgba(46, 204, 113, 1);
+  transform: scale(1.1);
+}
+
+.play-section {
+  margin-top: 20px;
+}
+
+.play-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #2ecc71;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(46, 204, 113, 0.3);
+}
+
+.play-button:hover:not(:disabled) {
+  background-color: #27ae60;
+  box-shadow: 0 4px 16px rgba(46, 204, 113, 0.5);
+  transform: translateY(-2px);
+}
+
+.play-button:disabled {
+  background-color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.play-button.disabled {
+  background-color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.details-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(51, 51, 51, 0.8);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.details-button:hover {
+  background-color: rgba(68, 68, 68, 0.9);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 /* ===== RESTO DOS ESTILOS ORIGINAIS ===== */
@@ -1705,26 +1899,6 @@ watch(activeTab, () => {
   animation: fadeInUp 0.8s ease-out 0.6s both;
 }
 
-.play-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #e50914;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(229, 9, 20, 0.3);
-}
-
-.play-button:hover {
-  background-color: #f40612;
-  box-shadow: 0 4px 16px rgba(229, 9, 20, 0.5);
-}
-
 .add-button-featured {
   display: flex;
   align-items: center;
@@ -1934,7 +2108,7 @@ watch(activeTab, () => {
 .list-indicator {
   position: absolute;
   top: 10px;
-  left: 10px;
+  right: 40px;
   background-color: rgba(34, 139, 34, 0.9);
   color: #fff;
   width: 24px;
@@ -1963,9 +2137,6 @@ watch(activeTab, () => {
 }
 
 .quick-add-btn {
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -1976,15 +2147,8 @@ watch(activeTab, () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transform: translateY(10px);
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
-}
-
-.content-card:hover .quick-add-btn {
-  opacity: 1;
-  transform: translateY(0);
 }
 
 .quick-add-btn.in-list {
@@ -2509,6 +2673,86 @@ watch(activeTab, () => {
   .delete-button {
     margin-left: 0;
     margin-top: 8px;
+  }
+
+  .quick-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .video-player-modal {
+    width: 95%;
+    max-width: none;
+  }
+
+  .video-title {
+    font-size: 20px;
+  }
+
+  .play-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .details-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Additional mobile optimizations */
+@media (max-width: 480px) {
+  .featured-title {
+    font-size: 24px;
+  }
+
+  .featured-synopsis {
+    -webkit-line-clamp: 2;
+  }
+
+  .content-grid {
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+  }
+
+  .content-poster {
+    height: 180px;
+  }
+
+  .section-title {
+    font-size: 20px;
+  }
+
+  .site-logo {
+    font-size: 24px;
+  }
+
+  .tab-button {
+    font-size: 14px;
+    padding: 6px 8px;
+  }
+
+  .quick-actions {
+    bottom: 8px;
+    right: 8px;
+  }
+
+  .quick-play-btn,
+  .quick-add-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .video-indicator,
+  .list-indicator {
+    width: 20px;
+    height: 20px;
+    top: 8px;
+  }
+
+  .content-badge {
+    font-size: 10px;
+    padding: 2px 6px;
   }
 }
 </style>

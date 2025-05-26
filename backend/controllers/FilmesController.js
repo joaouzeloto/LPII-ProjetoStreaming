@@ -2,13 +2,15 @@ import __dirname from '../utils/pathUtils.js';
 import Filmes from '../models/FilmesModel.js';
 
 class FilmesController {
- static async createFilme(req, res) {
+    static async createFilme(req, res) {
         try {
-            
             const { nome, genero, sinopse, anoLancamento, duracao } = req.body;
             
             // Obtém o caminho da imagem do upload (se houver)
-            const caminho = req.file ? req.file.filename : null;
+            const imagemPath = req.files && req.files['imagem'] ? req.files['imagem'][0].filename : null;
+            
+            // Obtém o caminho do arquivo do filme do upload (se houver)
+            const filmePath = req.files && req.files['filme'] ? req.files['filme'][0].filename : null;
 
             // Instanciar a classe Filmes corretamente, passando os parâmetros na ordem certa
             const filme = new Filmes(
@@ -17,7 +19,8 @@ class FilmesController {
                 sinopse,
                 anoLancamento,
                 duracao,
-                caminho // Usar caminho em vez de imagemPath
+                imagemPath, // Caminho da imagem
+                filmePath // Caminho do arquivo do filme
             );
             
             await filme.save();
@@ -37,7 +40,10 @@ class FilmesController {
             const { nome, genero, sinopse, anoLancamento, duracao } = req.body;
             
             // Obtém o caminho da imagem do upload (se houver)
-            const caminho = req.file ? req.file.filename : null;
+            const imagemPath = req.files && req.files['imagem'] ? req.files['imagem'][0].filename : null;
+            
+            // Obtém o caminho do arquivo do filme do upload (se houver)
+            const filmePath = req.files && req.files['filme'] ? req.files['filme'][0].filename : null;
 
             // Instanciar a classe Filmes para a atualização
             const filme = new Filmes(
@@ -46,7 +52,8 @@ class FilmesController {
                 sinopse,
                 anoLancamento,
                 duracao,
-                caminho
+                imagemPath, // Caminho da imagem
+                filmePath // Caminho do arquivo do filme
             );
             
             await Filmes.update(id, filme);
@@ -59,6 +66,7 @@ class FilmesController {
             });
         }
     }
+
     static async visualizeFilmes(req, res) {
         try {
             const filmes = await Filmes.findAll();
@@ -70,7 +78,6 @@ class FilmesController {
         }
     }
 
-    
     static async deleteFilme(req, res) {
         try {
             const { id } = req.params;
