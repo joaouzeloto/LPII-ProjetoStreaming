@@ -222,8 +222,7 @@
               </div>
               <!-- Quick action buttons -->
               <div class="quick-actions">
-                <button v-if="hasVideo(item)" class="quick-play-btn smooth-btn"
-                  @click.stop="playItem(item)">
+                <button v-if="hasVideo(item)" class="quick-play-btn smooth-btn" @click.stop="playItem(item)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
@@ -274,14 +273,8 @@
           </svg>
         </button>
         <h3 class="video-title">{{ playingItem?.nome }}</h3>
-        <video 
-          v-if="playingItem && getVideoPath(playingItem)" 
-          :src="getVideoPath(playingItem)"
-          controls
-          width="100%"
-          height="400"
-          autoplay
-        >
+        <video v-if="playingItem && getVideoPath(playingItem)" :src="getVideoPath(playingItem)" controls width="100%"
+          height="400" autoplay>
           Seu navegador não suporta o elemento de vídeo.
         </video>
         <div v-else class="video-error">
@@ -378,16 +371,11 @@
           <div class="rating-section">
             <h3 class="section-title">Avaliação</h3>
             <div class="rating">
-              <label v-for="star in 5" :key="star" 
-                     :class="{ filled: star <= selectedRating }" 
-                     @click="handleRating(star)"
-                     class="star-label">
+              <label v-for="star in 5" :key="star" :class="{ filled: star <= selectedRating }"
+                @click="handleRating(star)" class="star-label">
                 ★
               </label>
-              <button v-if="avaliacaoId" 
-                      @click="deleteRating" 
-                      class="delete-button"
-                      :disabled="!avaliacaoId">
+              <button v-if="avaliacaoId" @click="deleteRating" class="delete-button" :disabled="!avaliacaoId">
                 Remover Avaliação
               </button>
             </div>
@@ -460,39 +448,39 @@ let debounceTimer = null;
 // Verificar se um item tem vídeo disponível
 const hasVideo = (item) => {
   if (!item) return false;
-  
+
   // Para filmes: verificar caminhoFilme
   if (item.type === 'filme') {
     return !!(item.caminhoFilme);
   }
-  
+
   // Para séries: verificar caminhoSerie
   if (item.type === 'serie') {
     return !!(item.caminhoSerie);
   }
-  
+
   return false;
 };
 
 // Obter caminho do vídeo
 const getVideoPath = (item) => {
   if (!item) return '';
-  
+
   let videoPath = '';
-  
+
   if (item.type === 'filme' && item.caminhoFilme) {
     videoPath = item.caminhoFilme;
   } else if (item.type === 'serie' && item.caminhoSerie) {
     videoPath = item.caminhoSerie;
   }
-  
+
   if (!videoPath) return '';
-  
+
   // Se já é uma URL completa, retornar como está
   if (videoPath.startsWith('http')) {
     return videoPath;
   }
-  
+
   // Caso contrário, construir a URL
   return `../uploads/${videoPath}`;
 };
@@ -503,16 +491,16 @@ const playItem = (item) => {
     showToast('Arquivo de vídeo não disponível para este conteúdo.', 'error');
     return;
   }
-  
+
   console.log('🎬 Reproduzindo:', {
     nome: item.nome,
     type: item.type,
     caminhoVideo: getVideoPath(item)
   });
-  
+
   playingItem.value = item;
   showVideoPlayer.value = true;
-  
+
   // Fechar modal de detalhes se estiver aberto
   if (selectedItem.value) {
     selectedItem.value = null;
@@ -616,11 +604,11 @@ const getAvaliacaoUrl = () => {
   const currentUserId = getCurrentUserId();
   const currentItemId = getCurrentItemId();
   const currentItemType = getCurrentItemType();
-  
+
   if (!currentUserId || !currentItemId || !currentItemType) {
     return null;
   }
-  
+
   if (currentItemType === 'filme') {
     return `${API_URL}/avaliacao/usuario/${currentUserId}/filme/${currentItemId}`;
   } else if (currentItemType === 'serie') {
@@ -646,7 +634,7 @@ const fetchUserRating = async () => {
 
   try {
     console.log(`📡 Buscando avaliação: ${url}`);
-    
+
     const response = await fetch(url, {
       method: 'GET',
       headers: {
@@ -687,37 +675,57 @@ const fetchUserRating = async () => {
   }
 };
 
+
+// 🔥 Verificar se já existe avaliação do usuário para aquele item
+const checkExistingRating = async (userId, itemId, itemType) => {
+  const url =
+    itemType === 'filme'
+      ? `${API_URL}/avaliacao/usuario/${userId}/filme/${itemId}`
+      : `${API_URL}/avaliacao/usuario/${userId}/serie/${itemId}`;
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${getAuthToken()}`,
+      },
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data._id) {
+        console.log('🔍 Avaliação existente encontrada:', data);
+        return data._id;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Erro ao verificar avaliação existente:', error);
+    return null;
+  }
+};
+
+
 // Salvar/atualizar avaliação
 const handleRating = async (rating) => {
   const currentUserId = getCurrentUserId();
   const currentItemId = getCurrentItemId();
   const currentItemType = getCurrentItemType();
-  
-  // Validações
-  if (!currentUserId) {
-    console.error('❌ userId não encontrado');
-    showToast('Erro: Usuário não identificado', 'error');
+
+  if (!currentUserId || !currentItemId || !currentItemType) {
+    showToast('Erro: Dados insuficientes para avaliar.', 'error');
     return;
   }
 
-  if (!currentItemId || !currentItemType) {
-    console.error('❌ Item não identificado');
-    showToast('Erro: Item não identificado', 'error');
-    return;
-  }
-
-  if (!rating || rating < 1 || rating > 5) {
-    console.error('❌ Nota inválida:', rating);
-    showToast('Erro: Nota deve ser entre 1 e 5', 'error');
+  if (rating < 1 || rating > 5) {
+    showToast('Erro: Nota deve ser entre 1 e 5.', 'error');
     return;
   }
 
   selectedRating.value = rating;
 
-  // Preparar payload baseado no tipo do item
   const payload = {
     userId: currentUserId,
-    nota: rating
+    nota: rating,
   };
 
   if (currentItemType === 'filme') {
@@ -726,19 +734,31 @@ const handleRating = async (rating) => {
     payload.serieId = currentItemId;
   }
 
-  console.log('📡 Enviando avaliação:', payload);
-
   try {
+    // 🔍 Verificar se já existe avaliação
+    const existingId = await checkExistingRating(currentUserId, currentItemId, currentItemType);
+
+    if (existingId) {
+      // 🗑️ Deletar avaliação anterior antes de salvar
+      console.log('🗑️ Deletando avaliação existente:', existingId);
+      await fetch(`${API_URL}/avaliacao/${existingId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+    }
+
+    console.log('📡 Enviando nova avaliação:', payload);
+
     const response = await fetch(`${API_URL}/avaliacao`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${getAuthToken()}`
+        'Authorization': `Bearer ${getAuthToken()}`,
       },
       body: JSON.stringify(payload),
     });
-
-    console.log(`📡 Resposta: ${response.status} ${response.statusText}`);
 
     if (response.ok) {
       const data = await response.json();
@@ -749,14 +769,15 @@ const handleRating = async (rating) => {
       const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
       console.error('❌ Erro na resposta:', errorData);
       showToast(`Erro: ${errorData.message}`, 'error');
-      selectedRating.value = 0; // Reset em caso de erro
+      selectedRating.value = 0;
     }
   } catch (error) {
     console.error('❌ Erro ao salvar avaliação:', error);
     showToast(`Erro ao salvar avaliação: ${error.message}`, 'error');
-    selectedRating.value = 0; // Reset em caso de erro
+    selectedRating.value = 0;
   }
 };
+
 
 // Deletar avaliação
 const deleteRating = async () => {
@@ -767,7 +788,7 @@ const deleteRating = async () => {
 
   try {
     console.log(`🗑️ Deletando avaliação: ${avaliacaoId.value}`);
-    
+
     const response = await fetch(`${API_URL}/avaliacao/${avaliacaoId.value}`, {
       method: 'DELETE',
       headers: {
@@ -805,10 +826,10 @@ watch(selectedItem, async (newItem, oldItem) => {
     // Reset imediato
     selectedRating.value = 0;
     avaliacaoId.value = null;
-    
+
     // Aguardar um pouco para garantir que o modal renderizou
     await nextTick();
-    
+
     // Pequeno delay adicional para garantir estabilidade
     setTimeout(() => {
       console.log('🔄 Iniciando busca de avaliação...');
@@ -926,7 +947,7 @@ const loadMinhaLista = async (forceRefresh = false) => {
 
     if (response.ok) {
       const lista = await response.json();
-      
+
       const listaData = {
         filmes: lista.filmes || [],
         series: lista.series || []
@@ -937,7 +958,7 @@ const loadMinhaLista = async (forceRefresh = false) => {
         ...filme,
         type: 'filme'
       }));
-      
+
       listaData.series = listaData.series.map(serie => ({
         ...serie,
         type: 'serie'
@@ -954,10 +975,10 @@ const loadMinhaLista = async (forceRefresh = false) => {
         data: listaData,
         timestamp: Date.now()
       };
-      
+
       // Force re-render dos indicadores
       await nextTick();
-      
+
     } else if (response.status === 404) {
       console.log('📝 Lista não existe, criando nova...');
       await criarLista();
@@ -1295,12 +1316,12 @@ const filterByGenre = (genre) => {
 
 const showDetails = async (item) => {
   console.log('🎬 Abrindo detalhes do item:', item.nome);
-  
+
   selectedItem.value = item;
-  
+
   // Aguardar renderização do modal
   await nextTick();
-  
+
   // Buscar avaliação após modal estar pronto
   setTimeout(() => {
     fetchUserRating();
